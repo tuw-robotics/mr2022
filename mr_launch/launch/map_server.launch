@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="room" default="treitlstrasse_floor3" />
+  <!-- room sim or real -->
+  <arg name="map" default="map.yaml" />
+  
+  <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/map_server/$(arg room)/$(arg map)"/>
+</launch>

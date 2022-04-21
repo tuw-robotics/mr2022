@@ -1,0 +1,14 @@
+# http://wiki.ros.org/navigation/Tutorials/RobotSetup
+# global_costmap
+costmap:
+  global_frame: /map
+  robot_base_frame: base_link
+  update_frequency: 5.0
+  static_map: true
+  obstacle_range: 3.5
+  
+  raytrace_range: 4.5
+  footprint: [[0.2, 0.2], [0.2, -0.2], [-0.3, -0.2], [-0.3, 0.2]] 
+  robot_radius: 0.3
+  inflation_radius: 0.2
+  controller_frequency: 10.0
