@@ -12,7 +12,11 @@ int main(int argc, char **argv) {
     ros::NodeHandle n;
     SelfLocalizationNode self_localization(n);
     self_localization.init();
-    ros::Rate rate(10);
+
+    size_t frequency = 10;
+    ros::Rate rate(frequency);
+
+    size_t iteration = 0;
 
     while (ros::ok()) {
 
@@ -22,8 +26,11 @@ int main(int argc, char **argv) {
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
 
-        /// Publish map
-        self_localization.publishMap();
+        // Only plot with 1Hz.
+        if ((iteration % frequency) == 0) {
+            /// Publish map
+            self_localization.publishMap();
+        }
 
         /// plots measurements
         self_localization.plot();
@@ -33,6 +40,8 @@ int main(int argc, char **argv) {
 
         /// sleep for the time remaining to let us hit our publish rate
         rate.sleep();
+
+        iteration += 1;
     }
     return 0;
 }
