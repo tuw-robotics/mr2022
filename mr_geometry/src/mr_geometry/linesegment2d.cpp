@@ -24,7 +24,9 @@ const double &LineSegment2D::y0() const {
     return  p0_.y();
 }
 const double &LineSegment2D::x1() const {
-    return p1_.x();
+    return p1_.x();        /**
+         * @node your code
+         **/
 }
 const double &LineSegment2D::y1() const {
     return p1_.y();

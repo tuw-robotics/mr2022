@@ -1,8 +1,7 @@
 #include "self_localization_node.h"
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
 #include <boost/filesystem.hpp>
+#include <geometry_msgs/PoseArray.h>
 
 using namespace moro;
 
@@ -70,6 +69,7 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
     }
     /// subscribes to transformations
     tf_listener_ = std::make_shared<tf::TransformListener>();
+    tf_broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
 
     n_param_.param<std::string> ( "frame_id_map", pose_.header.frame_id, "map" );
 
@@ -87,6 +87,7 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
 
     /// defines a publisher for the resulting pose
     pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );
+    pub_pose_array_ = n.advertise<geometry_msgs::PoseArray> ( "pose_array", 1 );
 
     pose_.header.seq = 0;
 
@@ -145,20 +146,14 @@ void SelfLocalizationNode::localization() {
  **/
 void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     tf::StampedTransform transform;
-    /**
-     * @ToDo Sensor Mount
-     * remove the static transformation and use the tf_listener_
-     * @url http://wiki.ros.org/tf/Tutorials/Writing%20a%20tf%20listener%20%28C%2B%2B%29
-     **/
+
     try {
 #if SELF_LOCALIZATION_EXERCISE >= 10
 #else
-        /**
-         * @node your code
-         **/
-        transform.setRotation ( tf::Quaternion ( 0,0,0,1 ) );    /// Dummy to remove
-        transform.setOrigin ( tf::Vector3 ( 1,0,0 ) );           /// Dummy to remove
-        // tf_listener_-> .....
+        auto base_link = n_.getNamespace().length() == 1 ? "/base_link" :  n_.getNamespace() + "/base_link";
+        auto laser_link = n_.getNamespace().length() == 1 ? _laser.header.frame_id :  n_.getNamespace() + "/" + _laser.header.frame_id;
+
+        tf_listener_->lookupTransform(base_link, laser_link, ros::Time::now(), transform);
 #endif
         double roll = 0, pitch = 0, yaw = 0;
         transform.getBasis().getRPY ( roll, pitch, yaw );
@@ -168,11 +163,12 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
         ros::Duration ( 1.0 ).sleep();
     }
 
+    int nr = ( _laser.angle_max - _laser.angle_min ) / _laser.angle_increment;
     measurement_laser_->range_max() = _laser.range_max;
     measurement_laser_->range_min() = _laser.range_min;
-    measurement_laser_->resize ( _laser.ranges.size() );
+    measurement_laser_->resize ( nr );
     measurement_laser_->stamp() = _laser.header.stamp.toBoost();
-    for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
+    for ( int i = 0; i < nr; i++ ) {
         MeasurementLaser::Beam &beam = measurement_laser_->operator[] ( i );
         beam.length = _laser.ranges[i];
         beam.angle = _laser.angle_min + ( _laser.angle_increment * i );
@@ -250,4 +246,70 @@ void SelfLocalizationNode::publishPoseEstimated () {
     for ( double &d : pose_.pose.covariance ) d = 0;
     /// publishes motion command
     pub_pose_estimated_.publish ( pose_ );
+
+    auto odom_frame_id = n_.getNamespace().length() == 1 ? "/odom" : n_.getNamespace() + "/odom";
+    auto base_frame_id = n_.getNamespace().length() == 1 ? "/base_link" : n_.getNamespace() + "/base_link";
+    auto map_frame_id = "map";
+
+    /// publish estimated pose to tf tree
+    // WARNING:
+    //      odom -> base_link is published by other components, eg. stage, gazebo, robot, ...
+    //      localization calculates map -> base_link
+    //      Thus:  subtracting odom to base from map to base and send map to odom instead
+    ros::Time update_time = ros::Time::fromBoost(pose_filter_->time_last_update());
+
+    // Build a pose from base_link to map
+    tf::Quaternion q;
+    q.setRPY(0, 0, pose_estimated_.theta());
+    tf::Transform  tf_map_to_base(q, tf::Vector3(
+            pose_estimated_.get_x(),
+            pose_estimated_.get_y(),
+            0
+        ));
+    geometry_msgs::PoseStamped base_to_map;
+    base_to_map.header.frame_id = base_frame_id;
+    base_to_map.header.stamp = pose_.header.stamp;
+    tf::poseTFToMsg(tf_map_to_base.inverse(), base_to_map.pose);
+
+    // TODO: Use dynamic parameters
+    // Pose from odom to map
+    geometry_msgs::PoseStamped odom_to_map_pose;
+    tf_listener_->transformPose(odom_frame_id, base_to_map, odom_to_map_pose);
+
+    tf::Transform odom_to_map_tf;
+    tf::poseMsgToTF(odom_to_map_pose.pose, odom_to_map_tf);
+
+    geometry_msgs::TransformStamped map_to_odom;
+    map_to_odom.header.frame_id = pose_.header.frame_id;
+    map_to_odom.header.stamp = ros::Time::fromBoost(pose_filter_->time_last_update());
+    map_to_odom.header.seq = pose_.header.seq;
+    map_to_odom.child_frame_id = odom_frame_id;
+    tf::transformTFToMsg(odom_to_map_tf.inverse(), map_to_odom.transform);
+
+    tf_broadcaster_->sendTransform(map_to_odom);
+
+    if (pose_filter_->getTypeName() == "PARTICLE_FILTER") {
+        auto particleFilterPtr = (ParticleFilter*) pose_filter_.get();
+
+        geometry_msgs::PoseArray pose_array;
+        pose_array.header.frame_id = map_frame_id;
+        pose_array.header.stamp = pose_.header.stamp;
+        pose_array.header.seq = pose_.header.seq;
+
+        for (const SamplePtr& sptr : particleFilterPtr->samples) {
+            geometry_msgs::Pose pose;
+
+            pose.position.x = sptr->get_x();
+            pose.position.y = sptr->get_y();
+            pose.position.z = 0;
+
+            tf::Quaternion q_tf;
+            q_tf.setRPY(0, 0, pose_estimated_.theta());
+            tf::quaternionTFToMsg(q_tf, pose.orientation);
+
+            pose_array.poses.push_back(pose);
+        }
+
+        pub_pose_array_.publish(pose_array);
+    }
 }

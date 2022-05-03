@@ -2,6 +2,7 @@
 #define LOCAL_PLANNER_NODE_H
 
 #include <ros/ros.h>
+#include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose2D.h>
 #include <sensor_msgs/LaserScan.h>
@@ -23,6 +24,8 @@ private:
     ros::Subscriber sub_odom_;  /// Subscriber to the odom measurements
     ros::Subscriber sub_goal_;  /// Subscriber to the goal in world coordinates
     ros::Publisher pub_cmd_;    /// publisher for the motion commands
+    tf2_ros::Buffer tf_buffer_;   /// Buffer for tf2 messages
+    tf2_ros::TransformListener tf_listener_;  /// Listener for tf2 messages
     void callbackLaser ( const sensor_msgs::LaserScan& );   /// callback function to execute on incoming sensor data
     void callbackGoal ( const geometry_msgs::Pose2D& );   /// callback function to execute on incoming goal commands
     void callbackOdometry ( const nav_msgs::Odometry & ) ;     /// callback function to execute on incoming odometry data

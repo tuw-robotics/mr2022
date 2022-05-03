@@ -1,0 +1,6 @@
+devel_space: /home/sascha/workspace/Mobile_Robotics/workspace/src/mr-20.04/mr_geometry/devel
+install: false
+install_space: /home/sascha/workspace/Mobile_Robotics/workspace/src/mr-20.04/mr_geometry/install
+profile: default
+source_space: /home/sascha/workspace/Mobile_Robotics/workspace/src/mr-20.04/mr_geometry/src
+workspace: /home/sascha/workspace/Mobile_Robotics/workspace/src/mr-20.04/mr_geometry

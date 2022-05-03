@@ -7,24 +7,24 @@ using namespace moro;
 void SelfLocalization::onMouseMap ( int event, int x, int y, int flags, void* param ) {
     SelfLocalization *self_localization = ( SelfLocalization * ) param;
     self_localization->mouse_on_map_ =  self_localization->figure_map_.m2w ( Point2D ( x,y ) );
-    static Pose2D pose;
-    /**
-     * @ToDo React on mouse clicks
-     * catch the mouse and reset the filter
-     * use the event CV_EVENT_LBUTTONDOWN and CV_EVENT_LBUTTONUP to define a pose with orientation
-     * reset the filter with ground truth on the middle button
-     * Capture the mouse events.
-     * Left click -> set the pose to the mouse location
-     * Left release -> reinitialize the filter on the previously selected pose
-     * Middle mouse -> reinitialize the filter on the ground truth
-     **/
+    static Point2D start;
+
 #if SELF_LOCALIZATION_EXERCISE >= 30
 #else
-    /**
-     * @node your code
-     **/
     if ( event == cv::EVENT_LBUTTONDOWN ) {
-        std::cout << self_localization->mouse_on_map_ << std::endl;
+        start = Point2D(x, y);
+    } else if (event == cv::EVENT_LBUTTONUP) {
+        Point2D start_m = self_localization->figure_map_.m2w(start);
+
+        Pose2D pose;
+        pose.set_x(start_m.get_x());
+        pose.set_y(start_m.get_y());
+        pose.set_theta(-atan2(y - start.get_y(), x - start.get_x()));
+
+        self_localization->pose_filter_->reinitialize(pose);
+    } else if (event == cv::EVENT_MBUTTONDOWN) {
+       Pose2D pose = self_localization->pose_ground_truth_;
+        self_localization->pose_filter_->reinitialize(pose);
     }
 #endif
 }
@@ -70,38 +70,25 @@ void SelfLocalization::plotMap() {
     figure_map_.clear();
     char text[0xFF];
 
-    //cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
-    cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
+    cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
+    //cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
 
 
     for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
-        /**
-        * @ToDo plot sensor data
-        * plot the laser data into the map and use the transformation measurement_laser_->pose2d().tf() as well!!
-        * After you have finished the self-localization you mide want to use the pose_estimated_ instaead of pose_ground_truth_ to compute M
-        **/
 #if SELF_LOCALIZATION_EXERCISE >= 11
 #else
-        /**
-         * @node your code
-         **/
-        Point2D pm ( cos ( i ),sin ( i ) );
-        figure_map_.symbol ( pm, Figure::red );
+        Point2D end = M * (*measurement_laser_)[i].end_point;
+        figure_map_.circle( end, 1, Figure::red );
 #endif
 
     }
     sprintf ( text, "%5lu,  <%+4.2fm, %+4.2f>", loop_count_, mouse_on_map_.x(), mouse_on_map_.y() );
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::white,3, cv::LINE_AA );
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
-
-    /**
-    * @ToDo plot sensor data (your name)
-    **/
 #if SELF_LOCALIZATION_EXERCISE >= 11
 #else
-    /**
-     * @node your code
-     **/
+    sprintf ( text, "Alexander Lampalzer" );
+    cv::putText ( figure_map_.view(), text, cv::Point ( 20,550 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
 #endif
     figure_map_.symbol ( odom_, 0.2, Figure::cyan, 1 );
     figure_map_.symbol ( pose_ground_truth_, 0.2, Figure::orange, 1 );
