@@ -23,6 +23,7 @@ public:
     SelfLocalizationNode ( ros::NodeHandle & n ); /// Constructor
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
+    void publishMap ();   /// publishes the map
 private:
     ros::NodeHandle n_;             /// node handler to the root node
     ros::NodeHandle n_param_;       /// node handler to the current node
@@ -33,6 +34,7 @@ private:
     ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
     ros::Publisher pub_pose_array_; /// publisher for the particle array
+    ros::Publisher pub_map_; /// publisher for the map
     std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
     std::shared_ptr<tf::TransformBroadcaster> tf_broadcaster_;
     geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
