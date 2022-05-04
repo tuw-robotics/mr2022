@@ -1,6 +1,0 @@
-<launch>
-  
-  <!-- laod rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tuw_checkerboard)/launch/demo.rviz"/>
-  
-</launch>
