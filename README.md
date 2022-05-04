@@ -6,3 +6,7 @@
 * Andreas
 
 ## Documentation
+    roslaunch stage_ros world.launch world:=line.world
+
+    roslaunch mr_launch goto.launch
+
