@@ -2,7 +2,7 @@
 
 using namespace moro;
 
-PoseFilter::PoseFilter ( Type type ) : reset_ ( true ), type_ ( type ), timestamp_last_update_() {
+PoseFilter::PoseFilter ( Type type) : reset_ ( true ), type_ ( type ), timestamp_last_update_() {
 };
 void PoseFilter::reset ( ) {
     reset_ = true;

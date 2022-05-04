@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="name" default="local_planner" />
+  <arg name="world" default="cave_multi.world" />
+  <arg name="stage" default="0" />
+  <arg name="mode" default="0" />
+  
+  <group if="$(arg stage)">
+    <include file="$(find stage_ros)/launch/world.launch">
+      <arg name="world" default="$(arg world)" />
+    </include>
+  </group>
+
+  <group ns="$(arg name)">
+    <include file="$(find mr_local_planner)/launch/planner.launch">
+      <arg name="stage" default="0" />
+      <arg name="mode" default="$(arg mode)" />
+      <arg name="plot_data" default="false" />
+    </include>
+  </group>
+</launch>

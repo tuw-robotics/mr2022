@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="cfg" default="particle_filter.yaml" />  <!-- particle_filter.yaml, ekf.yaml -->
+  <arg name="map" default="cave" />
+  <arg name="planner" default="true" />
+  <arg name="mode" default="2" />
+  
+  <include file="$(find mr_launch)/launch/map_server.launch">
+        <arg name="room" value="$(arg map)"/>
+        <arg name="map" value="map.yaml"/>
+  </include>
+  
+  <!--
+  <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
+    <rosparam file="$(find mr_self_localization)/cfg/$(arg cfg)" command="load"/>
+    <param name="map_image" value="$(find mr_self_localization)/maps/$(arg map).png" />
+    <param name="map_lines" value="$(find mr_self_localization)/maps/$(arg map).yml" />
+    <remap from="scan" to="base_scan" />
+    <remap from="cmd" to="cmd_vel" />
+    <remap from="odom" to="odom" />
+  </node>
+  -->
+  
+  <group if="$(arg planner)">      
+      <include file="$(find mr_local_planner)/launch/planner.launch">
+          <arg name="stage" value="true"/>
+          <arg name="plot_data" value="false"/>
+          <arg name="mode" value="$(arg mode)"/>
+      </include>
+  </group>  
+  
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_self_localization)/rviz/rviz.rviz"/>
+  
+</launch>

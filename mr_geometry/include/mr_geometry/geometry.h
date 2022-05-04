@@ -18,7 +18,12 @@ namespace moro {
       UNIFORM_DISTRIBUTION = 1,
       GRID_DISTRIBUTION = 2
   };
+  enum ResamplingMode {
+      SIMPLE = 0,
+      LOW_VARIANCE = 1,      
+  };
   static std::map<DistributionType, std::string> DistributionTypeName; 
+  static std::map<ResamplingMode, std::string> ResamplingModeName; 
 }
 
 #endif // TUW_GEOMETRY

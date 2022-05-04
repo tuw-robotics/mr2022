@@ -4,6 +4,9 @@
 #include <boost/math/distributions/normal.hpp> // for normal_distribution
 #include <random>
 #include <iostream>
+#include <tf/LinearMath/Quaternion.h>
+#include <tf/transform_datatypes.h>
+
 
 using namespace moro;
 
@@ -14,9 +17,11 @@ std::uniform_real_distribution<double> ParticleFilter::uniform_distribution_y_;
 std::uniform_real_distribution<double> ParticleFilter::uniform_distribution_theta_;
 std::normal_distribution<double> ParticleFilter::normal_distribution_;
 
-ParticleFilter::ParticleFilter() :PoseFilter ( PARTICLE_FILTER ) {
+ParticleFilter::ParticleFilter( ros::NodeHandle & n ) : PoseFilter ( PARTICLE_FILTER ) {
     normal_distribution_ = std::normal_distribution<double> ();
     sigma_likelihood_field_ = 1.0;
+    
+    pub_particles_ = n.advertise<geometry_msgs::PoseArray>("particles", 1);
 }
 SamplePtr& ParticleFilter::normal ( SamplePtr &sample, const Pose2D &mean, double sigma_position, double sigma_orientation ) const {
     sample->set ( mean.x() + normal_distribution_ ( generator_ ) * sigma_position, mean.y() + normal_distribution_ ( generator_ ) * sigma_position, mean.theta() + normal_distribution_ ( generator_ ) * sigma_orientation );
@@ -28,6 +33,7 @@ SamplePtr& ParticleFilter::uniform ( SamplePtr &sample, std::uniform_real_distri
     sample->set ( distribution_x ( generator_ ),  distribution_y ( generator_ ),  distribution_theta ( generator_ ) );
     return sample;
 }
+
 void ParticleFilter::init ( ) {
     samples.resize ( config_.nr_of_samples );
     switch ( config_.initial_distribution ) {
@@ -88,11 +94,15 @@ void ParticleFilter::initGrid () {
 
 }
 
+
 void ParticleFilter::update ( const Command &u ) {
 
     int ms = config_.forward_prediction_time * 1000;
     boost::posix_time::time_duration duration = duration_last_update_ + boost::posix_time::millisec ( ms );
     double dx, dy, dtheta, dt = duration.total_microseconds() /1000000.;
+    double epsilon = 0.00001;
+    
+    double v = u.v(), w = u.w();
     for ( SamplePtr s : samples ) {
         /**
         * @ToDo Motion model
@@ -101,10 +111,30 @@ void ParticleFilter::update ( const Command &u ) {
         * Executes the forward prediction step for each particle
         **/
 #if SELF_LOCALIZATION_EXERCISE >= 13
-#else
-        /**
-         * @node your code
-         **/
+#else        
+        // sample perturbed control parameters              
+        double v_hat = v + normal_distribution_ ( generator_ ) * (config_.alpha1 * v * v + config_.alpha2 * w * w);
+        double w_hat = w + normal_distribution_ ( generator_ ) * (config_.alpha3 * v * v + config_.alpha4 * w * w);
+        double gamma_hat = normal_distribution_ ( generator_ ) * (config_.alpha5 * v * v + config_.alpha6 * w * w);        
+        // compute updates
+        if (fabs(w_hat) <= epsilon){
+            // TODO: manage this better, the teacher suggested the robot should go straight
+            // if w_hat is ~0 then the robot is going straight
+            dx = 0; //sin(s->theta() * v_hat * dt);
+            dy = 0; //cos(s->theta() * v_hat * dt);
+            dtheta = 0; //gamma_hat * dt;
+        }
+        else{
+            // if w_hat is non-zero then we use v/w ratio
+            double vw_ratio = v_hat / w_hat;
+            dx = - vw_ratio * sin(s->theta()) + vw_ratio * sin(s->theta() + w_hat * dt);
+            dy = vw_ratio * cos(s->theta()) - vw_ratio * cos(s->theta() + w_hat * dt);
+            dtheta = w_hat * dt + gamma_hat * dt;
+        }        
+        // update pose
+        s->set_x(s->x() + dx);
+        s->set_y(s->y() + dy);
+        s->set_theta(s->theta() + dtheta);
 #endif
     }
 }
@@ -117,9 +147,11 @@ Pose2D ParticleFilter::localization ( const Command &u, const MeasurementConstPt
         if ( config_.enable_weighting ) weighting ( ( const MeasurementLaserConstPtr& ) z );
         pose_estimated_ = *samples[0];
     }
+
     return pose_estimated_;
 
 }
+
 void ParticleFilter::plotData ( Figure &figure_map ) {
 
     /**
@@ -134,6 +166,12 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
     /**
      * @node your code
      **/
+    cv::Mat& background = figure_map.background();
+    for(size_t r=0; r < likelihood_field_.rows; r++){
+        for(size_t c=0; c < likelihood_field_.cols; c++){            
+            background.at<cv::Vec3b>(r, c)[0] = (1 - likelihood_field_[r][c]) * 255;            
+        }
+    }
 #endif
     double scale =  255.0 / samples_weight_max_ ;
     char text[0xFF];
@@ -149,16 +187,35 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
         **/
 #if SELF_LOCALIZATION_EXERCISE >= 12
 #else
-        /**
-         * @node your code
-         **/
+        double x = s->x(), y= s->y(), w = s->weight();
+        cv::Scalar colorBGR(scale * (samples_weight_max_ - w), scale * w, 0);
+        Point2D pm(x, y);
+        figure_map.symbol(pm, 0.1, colorBGR);
 #endif
     }
     sprintf ( text, "%4.3fsec", duration_last_update_.total_microseconds() /1000000. );
-    cv::putText ( figure_map.view(), text, cv::Point ( figure_map.view().cols-100,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::white,3, cv::LINE_AA );
-    cv::putText ( figure_map.view(), text, cv::Point ( figure_map.view().cols-100,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
+    cv::putText ( figure_map.view(), text, cv::Point ( figure_map.view().cols-100,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::white, 3, cv::LINE_AA );
+    cv::putText ( figure_map.view(), text, cv::Point ( figure_map.view().cols-100,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 
     figure_map.symbol ( pose_estimated_, 0.5, Figure::magenta, 1 );
+    
+    // publish particles
+    geometry_msgs::PoseArray particles_msg;
+    particles_msg.header.frame_id = "map";
+    particles_msg.header.stamp = ros::Time::now();
+    for (size_t i=0; i<samples.size(); i++){        
+        geometry_msgs::Pose pose;
+        pose.position.x = samples[i]->x();
+        pose.position.y = samples[i]->y();
+        pose.position.z = 0.0;     
+        tf::Quaternion q;
+        q.setRPY(0, 0, samples[i]->theta());
+        geometry_msgs::Quaternion gq; 
+        tf::quaternionTFToMsg(q, gq);   // not found better way to obtain orientation from theta
+        pose.orientation = gq;
+        particles_msg.poses.push_back( pose );
+    }
+    pub_particles_.publish(particles_msg);
 }
 
 void ParticleFilter::setConfig ( const void *config ) {
@@ -200,6 +257,7 @@ void ParticleFilter::loadMap ( int width_pixel, int height_pixel, double min_x, 
 
     updateLikelihoodField ();
 }
+
 void ParticleFilter::updateLikelihoodField () {
 
     if ( sigma_likelihood_field_ == config_.sigma_hit ) return;
@@ -222,12 +280,16 @@ void ParticleFilter::updateLikelihoodField () {
     /**
      * @node your code
      **/
+    cv::distanceTransform(map_, distance_field_pixel_, cv::DIST_L1, cv::DIST_MASK_3, CV_32F);
+    
+    float scaleLikelihood = boost::math::pdf(normal_likelihood_field, 0.0);   // likelihood=1 when distance=0 m
     for ( int r = 0; r < likelihood_field_.rows; r++ ) {
         for ( int c = 0; c < likelihood_field_.cols; c++ ) {
-            float v = ( float ) c / ( float ) likelihood_field_.cols;
-            likelihood_field_ ( r,c ) = v;
+            float meterDist = distance_field_pixel_ ( r, c ) / scale_;
+            float likelihood = boost::math::pdf(normal_likelihood_field, meterDist) / scaleLikelihood;
+            likelihood_field_ ( r,c ) = likelihood;
         }
-    }
+    }    
 #endif
 }
 
@@ -241,12 +303,20 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
     **/
 #if SELF_LOCALIZATION_EXERCISE >= 23
 #else
-    /**
-     * @node your code
-     **/
-    /// Dummy: fills all values with the same value
-    for ( size_t i = 0; i < used_beams.size(); i++ ) {
-        used_beams[i] = i;
+    if (config_.random_beams){        
+        for ( size_t i = 0; i < used_beams.size(); i++ ){
+            double sample = (double) rand() / RAND_MAX;
+            size_t beamID = round(sample * z->size());
+            used_beams[i] = beamID;
+        }
+    } else {
+        int intervalRays = floor( z->size() / (used_beams.size() - 1)); // -1 because we want to cover first and last beams
+        for ( size_t i = 0; i < used_beams.size(); i++ ){
+            used_beams[i] = i * intervalRays;            
+            if (i * intervalRays >= z->size()){     // cap to max beams to ensure valid ids
+                used_beams[i] = z->size() - 1;
+            }            
+        }        
     }
 #endif
 
@@ -265,10 +335,29 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
 #else
     /**
      * @node your code
-     **/
-    /// Dummy: computes a funny weight
-    auto weight_sample = [] ( SamplePtr &s ) {
-        s->weight() = sqrt ( s->x() *s->x() +s->y() *s->y() );
+     **/    
+    
+    auto weight_sample = [&] ( SamplePtr &s ) {
+        double tot_w = 1.0;        
+        for ( size_t i : used_beams){
+            auto b = z->operator[](i);
+            if (b.length < config_.z_max) {
+                // transform from robot- to map- frame
+                Point2D endpoint = s->tf() * z->pose2d().tf() * b.end_point;
+                double p_hit = 0.0;     // prob hit is 0.0 unless endpoint is within the map limits
+                if (endpoint.x() >= min_x_ && endpoint.x() <= max_x_ &&
+                    endpoint.y() >= min_y_ && endpoint.y() <= max_y_) {
+                    // transform map- to pixel- frame
+                    Point2D pixels = tf_ * endpoint;
+                    // compute weight as in the book
+                    p_hit = likelihood_field_( (int) round(pixels.y()), (int) round(pixels.x()) );                                        
+                }   
+                double w = (config_.z_hit * p_hit + (config_.z_rand / config_.z_max));                
+                tot_w *= w;   
+                                 
+            }
+        }
+        s->weight() = tot_w;
     };
 #endif
     std::for_each ( samples.begin(), samples.end(), weight_sample );
@@ -289,10 +378,12 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
     }
 }
 
+
+
 void ParticleFilter::resample () {
     double dt = duration_last_update_.total_microseconds() /1000000.;
     std::uniform_real_distribution<double> d ( 0,1 );
-    std::uniform_int_distribution<size_t>  uniform_idx_des ( 0,samples.size()-1 );
+    std::uniform_int_distribution<size_t>  uniform_idx_des ( 0, samples.size()-1 );
     /**
     * @ToDo Resample
     * implement a resample wheel
@@ -301,17 +392,52 @@ void ParticleFilter::resample () {
     */
 #if SELF_LOCALIZATION_EXERCISE >= 31
 #else
-    /**
-     * @node your code
-     **/
-#endif
-        /// update number of samples
-        if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );
-        while ( config_.nr_of_samples > samples.size() ) {
-            SamplePtr &parent = samples[uniform_idx_des ( generator_ )];
-            double p = d ( generator_ );
-            samples.push_back ( std::make_shared<Sample> ( *parent ) );
-            SamplePtr &s  = samples.back();
-            normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+    size_t nParticlesToResample = round( samples.size() * config_.resample_rate );    
+    if (config_.resampling_mode == SIMPLE) {  
+        ROS_INFO_STREAM("SIMPLE\n");
+        // simple: discard the M least important particles and resample the most important ones with a certain perturbation
+        // note: the particles are already sorted from highest to lowest importance
+        for(size_t n = 0; n < nParticlesToResample; n++){            
+            SamplePtr &badParticle  = samples[ samples.size() - nParticlesToResample + n ];
+            SamplePtr &goodParticle  = samples[ n ];
+            normal ( badParticle, *goodParticle, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+        } 
+    } else {
+        // low_variance: systematic sampling
+        // compute cdf of particle weights
+        ROS_INFO_STREAM("LOW VARIANCE\n");
+        std::vector<double> cdf;
+        double sum = 0.0;
+        for(size_t n = 0; n < samples.size(); n++){
+            sum += samples[n]->weight();
+            cdf.push_back(sum);
         }
+        if (sum > 0){ // note: avoid resampling in first iteration because all particles have weight 0            
+            double deltaN = 1.0 / nParticlesToResample;
+            double r = d( generator_ ) * deltaN;
+            size_t i = 0;
+            //         
+            for(size_t n = 0; n < nParticlesToResample; n++){            
+                double u = r + n * deltaN;
+                ROS_ASSERT(u >= 0 && u<=1);
+                while (u > cdf[ i ]){                    
+                    i++;
+                    ROS_ASSERT(i >= 0 && i < samples.size());
+                }
+                SamplePtr &badParticle  = samples[ samples.size() - nParticlesToResample + n ];
+                SamplePtr &goodParticle  = samples[ i ];            
+                normal ( badParticle, *goodParticle, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+            }            
+        }                
+    } 
+#endif
+    /// update number of samples
+    if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );
+    while ( config_.nr_of_samples > samples.size() ) {
+        SamplePtr &parent = samples[uniform_idx_des ( generator_ )];
+        double p = d ( generator_ );
+        samples.push_back ( std::make_shared<Sample> ( *parent ) );
+        SamplePtr &s  = samples.back();
+        normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
     }
+}

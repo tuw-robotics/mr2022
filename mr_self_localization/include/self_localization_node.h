@@ -4,10 +4,13 @@
 #include <memory>
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/LinearMath/Quaternion.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/LaserScan.h>
 #include <dynamic_reconfigure/server.h>
 #include <mr_self_localization/ParticleFilterConfig.h>
@@ -31,8 +34,8 @@ private:
     ros::Subscriber sub_initial_pose_; /// Subscriber to receive a standard pose message for initialization (rviz)
     ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
-    std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
-    geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
+    std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose    
+    geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance    
     void callbackCmd ( const geometry_msgs::Twist& ); /// callback function to catch motion commands
     void callbackOdometry ( const nav_msgs::Odometry& ); /// callback function to catch odometry messages
     void callbackGroundTruth ( const nav_msgs::Odometry& ); /// callback function to catch  ground truth pose messages

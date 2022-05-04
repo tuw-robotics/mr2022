@@ -48,7 +48,7 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
         ROS_ERROR ( "mode is not set" );
         return;
     }
-    if ( mode == PoseFilter::PARTICLE_FILTER ) pose_filter_ = std::make_shared<moro::ParticleFilter>();
+    if ( mode == PoseFilter::PARTICLE_FILTER ) pose_filter_ = std::make_shared<moro::ParticleFilter>( n );  // to publish particles, we pass the node handle to the constructor
     if ( mode == PoseFilter::KALMAN_FILTER )   pose_filter_ = std::make_shared<moro::KalmanFilter>();
 
     ROS_INFO ( "mode: %s(%i)", pose_filter_->getTypeName().c_str(), ( int ) pose_filter_->getType() );
@@ -86,7 +86,7 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
     sub_ground_truth_ = n.subscribe ( "base_pose_ground_truth", 1, &SelfLocalizationNode::callbackGroundTruth, this );
 
     /// defines a publisher for the resulting pose
-    pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );
+    pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );    
 
     pose_.header.seq = 0;
 
@@ -155,10 +155,8 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
 #else
         /**
          * @node your code
-         **/
-        transform.setRotation ( tf::Quaternion ( 0,0,0,1 ) );    /// Dummy to remove
-        transform.setOrigin ( tf::Vector3 ( 1,0,0 ) );           /// Dummy to remove
-        // tf_listener_-> .....
+         **/        
+        tf_listener_->lookupTransform("/base_link", _laser.header.frame_id, ros::Time(0.0), transform);
 #endif
         double roll = 0, pitch = 0, yaw = 0;
         transform.getBasis().getRPY ( roll, pitch, yaw );
@@ -168,11 +166,12 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
         ros::Duration ( 1.0 ).sleep();
     }
 
+    int nr = ( _laser.angle_max - _laser.angle_min ) / _laser.angle_increment;
     measurement_laser_->range_max() = _laser.range_max;
     measurement_laser_->range_min() = _laser.range_min;
-    measurement_laser_->resize ( _laser.ranges.size() );
+    measurement_laser_->resize ( nr );
     measurement_laser_->stamp() = _laser.header.stamp.toBoost();
-    for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
+    for ( int i = 0; i < nr; i++ ) {
         MeasurementLaser::Beam &beam = measurement_laser_->operator[] ( i );
         beam.length = _laser.ranges[i];
         beam.angle = _laser.angle_min + ( _laser.angle_increment * i );
@@ -240,7 +239,7 @@ void SelfLocalizationNode::callbackGroundTruth ( const nav_msgs::Odometry& groun
  * Publishes the estimated pose
  **/
 void SelfLocalizationNode::publishPoseEstimated () {
-    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
+    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;    
     pose_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
     pose_.header.seq++;
     pose_.pose.pose.position.x = pose_estimated_.x();
@@ -250,4 +249,32 @@ void SelfLocalizationNode::publishPoseEstimated () {
     for ( double &d : pose_.pose.covariance ) d = 0;
     /// publishes motion command
     pub_pose_estimated_.publish ( pose_ );
+    
+    // subtracting base2odom from map2base
+    try
+    {
+        tf::Transform map2base;
+        map2base.setOrigin( tf::Vector3(pose_estimated_.x(), pose_estimated_.y(), 0.0) );
+        tf::Quaternion q;
+        q.setRPY(0, 0, pose_estimated_.theta());
+        map2base.setRotation(q);
+    
+        tf::Stamped<tf::Pose> stamped_base2map( map2base.inverse(),
+                                                ros::Time::now(),
+                                                "base_link" );
+        tf::Stamped<tf::Pose> tf_odom2map;
+        tf_listener_->transformPose("odom", stamped_base2map, tf_odom2map);
+        // send map to odom instead
+        static tf::TransformBroadcaster br;
+        tf::StampedTransform stamped_map2odom(tf_odom2map.inverse(),
+                                                ros::Time::now(),
+                                                pose_.header.frame_id, 
+                                                "odom");
+        br.sendTransform(stamped_map2odom);
+    }
+    catch(tf::TransformException)
+    {
+        ROS_DEBUG("Failed to subtract base to odom transform");
+        return;
+    }
 }

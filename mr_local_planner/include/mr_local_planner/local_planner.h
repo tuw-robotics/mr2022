@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <mr_geometry/geometry.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+#include <random>
 
 namespace moro {
 /**
@@ -29,9 +30,12 @@ public:
         TURN = 3,     /// turn to goal
         STRAIGHT = 4, 
         WALL_FOLLOW_LEFT = 5, 
-        WALL_FOLLOW_RIGHT = 6 
+        WALL_FOLLOW_RIGHT = 6,
         /// @ToDo for goto expand action state if needed
+        TURN_LEFT = 7,  // used in wanderer1
+        TURN_RIGHT = 8  // used in wanderer1
     };
+    
     static std::map<ControlMode, std::string> ControlModeName_; 
     
     
@@ -41,6 +45,8 @@ public:
     void plot();                         /// plots sensor input
     
 protected:
+    std::random_device rd{};
+    std::mt19937 gen{rd()};
 
     Command cmd_;  /// output variables  v, w
     unsigned long loop_count_; /// counts the filter cycles
@@ -60,6 +66,13 @@ protected:
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
     void plotLocal();       /// plots sensor input in robot coordinates
+    
+    // Wanderer
+    ros::Time rotationStart = ros::Time::now();   // when a in-place rotation started
+    double rotationDuration = 0.0;          // how long the rotation should last
+    
+    double estimateOpenCorridor(int pivot, int nHalfRays);  // estimate if a corridor is free
+    
     mr_local_planner::LocalPlannerConfig config_;
 };
 }

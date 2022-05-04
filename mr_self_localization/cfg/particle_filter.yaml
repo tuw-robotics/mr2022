@@ -6,7 +6,7 @@ plot_data: true
 particle_filter:
   initial_distribution: 1
   forward_prediction_time: 0
-  nr_of_samples: 100
+  nr_of_samples: 10000
   resample_rate: 0.1
   
   enable_update: true
@@ -16,14 +16,15 @@ particle_filter:
   nr_of_beams: 20
   random_beams: true
  
-  sigma_init_position: 0.5
-  sigma_init_orientation: 0.39
-  sigma_static_position: 0.1
-  sigma_static_orientation: 0.2
+  resampling_mode: 1
+  sigma_init_position: 1.0
+  sigma_init_orientation: 1.0
+  sigma_static_position: 0.5
+  sigma_static_orientation: 0.5
   
   alpha1: 0.1
-  alpha2: 0.1
-  alpha3: 0.1
+  alpha2: 0.05
+  alpha3: 0.5
   alpha4: 0.1
   alpha5: 0.1
   alpha6: 0.1

@@ -1,6 +1,7 @@
 #ifndef POSE_FILTER_H
 #define POSE_FILTER_H
 
+#include <ros/ros.h>
 #include <memory>
 #include <mr_geometry/geometry.h>
 #include <boost/date_time/posix_time/ptime.hpp>

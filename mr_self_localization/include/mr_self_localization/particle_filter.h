@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <random>
+#include <geometry_msgs/PoseArray.h>
 #include <boost/math/distributions/normal.hpp> // for normal_distribution
 #include <mr_self_localization/sample.h>
 #include <mr_self_localization/pose_filter.h>
@@ -24,7 +25,7 @@ public:
     /**
      * Constructor
      **/
-    ParticleFilter();;
+    ParticleFilter(ros::NodeHandle & n);
     /**
      * used to plot debug data into a map
      * @param figure_map 
@@ -83,7 +84,8 @@ private:
     /**
      * places a particle on a random pose on the map
      * @param sample
-     * @param distribution_x
+     * @param distribution_x    ros::Publisher pub_particles_; /// publisher for the particles
+
      * @param distribution_y
      * @param distribution_theta
      **/
@@ -104,7 +106,8 @@ private:
      * places all samples normal distributed around the pose_init_
      **/
     void initNormal ();
-    /**
+    /**    ros::Publisher pub_particles_; /// publisher for the particles
+
      * places all samples uniform distributed on the map
      **/
     void initUniform();
@@ -133,6 +136,9 @@ private:
     cv::Mat_<float> distance_field_;              /// distance field in meters
     cv::Mat_<float> likelihood_field_;            /// computed likelihood field
     mr_self_localization::ParticleFilterConfig config_;  /// parameters
+    
+    ros::Publisher pub_particles_; /// publisher for the particles
+
 };
 };
 

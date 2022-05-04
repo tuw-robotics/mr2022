@@ -12,6 +12,8 @@ int main ( int argc, char **argv ) {
     planner.init();
     ros::Rate rate ( 10 );  /// ros loop frequency synchronized with the wall time (simulated time)
 
+    srand(time(0));
+    
     while ( ros::ok() ) {
 
         /// calls your loop
@@ -51,7 +53,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_laser_ =
+    sub_laser_ = n_.subscribe("scan", 1000, &LocalPlannerNode::callbackLaser, this);
 #endif
 
 
@@ -64,8 +66,8 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_goal_ =
-    // sub_odom_ =
+    sub_goal_ = n_.subscribe("goal", 1000, &LocalPlannerNode::callbackGoal, this);
+    sub_odom_ = n_.subscribe("odom", 1000, &LocalPlannerNode::callbackOdometry, this);
 #endif
 
     /// defines a publisher for velocity commands
@@ -98,14 +100,36 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     /**
      * @node your code
      **/
-    //measurement_laser_.range_max() =0;  /// @ToDo
-    //measurement_laser_.range_min() = 0; /// @ToDo
-    //measurement_laser_.resize ( 0 ); /// @ToDo
-    //for ( ....
-    /// measurement_laser_ [i].length  =
-    /// measurement_laser_ [i].angle  =
-    /// measurement_laser_ [i].end_point  =
-    //}
+    
+    /* Rationale: 
+     * let (range, alpha) be the measurement to a given object
+     * sensor location in robot system (x_s_r, y_s_r, theta_s_r) = (0.22, 0.00, 0.00)
+     *      sensor cartesian system: 
+     *          x_m_s = range cos(alpha) 
+     *          y_m_S = range sin(alpha)
+     *      robot cartesian system: 
+     *          x_m_r = x_s_r + x_m_s * cos(theta_s_t) - y_m_s * sin(theta_s_t)
+     *          y_m_r = y_s_r + x_m_s * sin(theta_s_r) + y_m_s * cos(theta_s_t)
+     */
+    
+    measurement_laser_.range_max() = _laser.range_max;
+    measurement_laser_.range_min() = _laser.range_min;
+    measurement_laser_.resize (_laser.ranges.size());    
+    double x_s_r = 0.22, y_s_r = 0.0, theta_s_r=0.0;
+    for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+        double range = _laser.ranges[i];
+        double angle = _laser.angle_min + i * _laser.angle_increment;   // better to keep incrementing angle because for small increments it could suffer of approx. errors
+        // compute measurement in sensor coordinate system        
+        double x_m_s = range * cos(angle);
+        double y_m_s = range * sin(angle);
+        // compute measurement in robot coordinate system
+        double x_m_r = x_s_r + x_m_s * cos(theta_s_r) - y_m_s * sin(theta_s_r);
+        double y_m_r = y_s_r + x_m_s * sin(theta_s_r) + y_m_s * cos(theta_s_r);
+        measurement_laser_[i].length  = range;
+        measurement_laser_[i].angle  = angle;
+        measurement_laser_[i].end_point  = Point2D(x_m_r, y_m_r);        
+    }
+    
 #endif
 }
 /**

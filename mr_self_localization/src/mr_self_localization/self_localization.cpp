@@ -20,12 +20,25 @@ void SelfLocalization::onMouseMap ( int event, int x, int y, int flags, void* pa
      **/
 #if SELF_LOCALIZATION_EXERCISE >= 30
 #else
-    /**
-     * @node your code
-     **/
+    // Compute pose
+    bool toReinitialize = false;
     if ( event == cv::EVENT_LBUTTONDOWN ) {
-        std::cout << self_localization->mouse_on_map_ << std::endl;
+        pose = self_localization->mouse_on_map_ ;
     }
+    else if ( event == cv::EVENT_LBUTTONUP ) {
+        Pose2D poseOnRelease = self_localization->mouse_on_map_ ;        
+        double angle = atan2( poseOnRelease.y() - pose.y(), poseOnRelease.x() - pose.x());
+        pose.set_theta( angle );
+        toReinitialize = true;
+    }
+    else if ( event == cv::EVENT_MBUTTONUP ) {
+        pose = self_localization->pose_ground_truth_;        
+        toReinitialize = true;
+    }    
+    // Call reinitialize
+    if(toReinitialize){        
+        self_localization->pose_filter_->reinitialize(pose);    
+    }    
 #endif
 }
 
@@ -70,27 +83,31 @@ void SelfLocalization::plotMap() {
     figure_map_.clear();
     char text[0xFF];
 
-    //cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
-    cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
+    cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
+    //cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
 
 
     for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
         /**
         * @ToDo plot sensor data
         * plot the laser data into the map and use the transformation measurement_laser_->pose2d().tf() as well!!
-        * After you have finished the self-localization you mide want to use the pose_estimated_ instaead of pose_ground_truth_ to compute M
+        * After you have finished the self-localization you might want to use the pose_estimated_ instead of pose_ground_truth_ to compute M
         **/
 #if SELF_LOCALIZATION_EXERCISE >= 11
 #else
         /**
          * @node your code
-         **/
-        Point2D pm ( cos ( i ),sin ( i ) );
+         **/        
+        double x = measurement_laser_->operator[](i).length * cos(measurement_laser_->operator[](i).angle);
+        double y = measurement_laser_->operator[](i).length * sin(measurement_laser_->operator[](i).angle);        
+        cv::Matx<double, 3, 1> b(x, y, 1);
+        auto res = M * b;
+        Point2D pm ( res(0),res(1) );
         figure_map_.symbol ( pm, Figure::red );
 #endif
 
     }
-    sprintf ( text, "%5lu,  <%+4.2fm, %+4.2f>", loop_count_, mouse_on_map_.x(), mouse_on_map_.y() );
+    sprintf ( text, "%5lu,  <%+4.2fm, %+4.2f> Luigi Berducci", loop_count_, mouse_on_map_.x(), mouse_on_map_.y() );
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::white,3, cv::LINE_AA );
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
 

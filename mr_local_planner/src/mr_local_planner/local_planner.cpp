@@ -38,7 +38,7 @@ void LocalPlanner::init() {
      * @ToDo Wanderer
      * change the Maxima Musterfrau to your name
      **/
-    cv::putText ( figure_local_.background(), "Maxima Musterfrau",
+    cv::putText ( figure_local_.background(), "Luigi Berducci",
                   cv::Point ( figure_local_.view().cols-250, figure_local_.view().rows-10 ),
                   cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 }
@@ -61,9 +61,10 @@ void LocalPlanner::plotLocal() {
     /**
      * @node your code
      **/
-    figure_local_.symbol ( Point2D ( 1,2 ), Figure::red ); /// Demo remove afterwards
-    figure_local_.circle ( Point2D ( 2,2 ), 2, Figure::green, 2 ); /// Demo remove afterwards
-    // for in measurement_laser_ {}
+    for (int i = 0; i < measurement_laser_.size(); i++) {
+        MeasurementLaser::Beam beam = measurement_laser_[i];
+        figure_local_.circle(beam.end_point, 1, Figure::red, 2 );
+    }
 #endif
 
     /**
@@ -131,18 +132,167 @@ void LocalPlanner::demo() {
     cmd_.set ( v, w );
 }
 
+double LocalPlanner::estimateOpenCorridor(int pivot, int nHalfRays){
+    /* 
+     * Consider a corridor as centered around a `pivot` ray with a half-width `nHalfRays`,
+     * we can estimate if the corridor is clean by computing the average length of its rays.
+     */
+    double meanDistance = 0.0;
+    for (int i=pivot-nHalfRays; i<pivot+nHalfRays; i++) 
+        meanDistance += measurement_laser_[i].length;
+    meanDistance /= 2*nHalfRays;
+    return meanDistance;
+}
+
 void LocalPlanner::wanderer1() {
     /**
     * @ToDo Wanderer
-    * write one or two wanderer behaviors to keep the robot at least 120sec driving without a crash by exploring as much as possible.
-    * I know it sounds weird but don't get too fancy.
+    * Implementation of a simple controller "à la Roomba"
+    *     1. check if there is enough free space (ie., a corridor) in front of the robot
+    *     2. if corrifor is free: go straight
+    *     3. otherwise: start a rotation (random left/right) until new free corridor
     **/
+    
+    // parameters    
+    const int raysHalfFOV= 90;                                       // half field of view (rays)
+    const int beginFOV = measurement_laser_.size()/2 - raysHalfFOV;  // first ray defining the frontal corridor
+    const int endFOV = measurement_laser_.size()/2 + raysHalfFOV;    // last ray defining the frontal corridor
+    const double safetyDist = 1.5;                 // critical distance to detect an obstacle in the FOV (in meter)
+    const double corridorHalfWidth = 0.4;           // used to trigger the in-place rotation
+        
+    // select action only if the previous has been completed
+    double closestDistance = 100;   // distance (meter) to the closest obstacle
+    if (!measurement_laser_.empty()){
+        // check if frontal corridor is free
+        bool corridorIsFree = true;        
+        for (int i=beginFOV; i<endFOV; i++){
+            closestDistance = min(closestDistance, measurement_laser_[i].length);
+            if (measurement_laser_[i].length < safetyDist){                
+                double alpha = measurement_laser_[measurement_laser_.size()/2].angle - measurement_laser_[i].angle;
+                double distance = abs(measurement_laser_[i].length * sin(alpha));                
+                if (distance < corridorHalfWidth){
+                    corridorIsFree = false;                    
+                }                
+            }
+        }
+        // choose action to perform
+        if (corridorIsFree){
+            action_state_ = ActionState::STRAIGHT;
+        } else {
+            // choose new rotation only if not already performing a rotation
+            if (action_state_ == ActionState::STRAIGHT){
+                if (rand() < RAND_MAX/2)
+                    action_state_ = ActionState::TURN_LEFT;
+                else
+                    action_state_ = ActionState::TURN_RIGHT;
+            }            
+        }
+    } else {
+        if (rand() < RAND_MAX/2)
+            action_state_ = ActionState::TURN_LEFT;
+        else
+            action_state_ = ActionState::TURN_RIGHT;
+    }
+    
+    // perform action
+    std::normal_distribution<> v_noise{0.0, config_.v_std};
+    std::normal_distribution<> w_noise{0.0, config_.w_std};
+
+    double v=0.0, w=0.0;
+    switch (action_state_) {
+        case ActionState::STRAIGHT:
+            if (closestDistance < safetyDist){
+                v = 0.5 * config_.v_mean + v_noise(gen);    // if close obstacle, max velocity 0.3 m/s
+            } else {
+                v = config_.v_mean + v_noise(gen);    // otherwise, max velocity 0.8 m/s
+            }            
+            w = 0.0;
+            break;
+        case ActionState::TURN_LEFT:
+            v = 0.0;
+            w = config_.w_mean + w_noise(gen);
+            break;
+        case ActionState::TURN_RIGHT:
+            v = 0.0;
+            w = -(config_.w_mean + w_noise(gen));
+            break;
+        default: 
+            // do nothing
+            break;
+    }
+    
+    // send control command
+    cmd_.set(v, w);
 }
+
 void LocalPlanner::wanderer2() {
     /**
     * @ToDo Wanderer
     * OPTIONAL: if you like you can write another one :-)
-    **/
+    * NOTE: not working well, especially in multi-agent setting
+    **/    
+    double v = 0.0, w = 0.0;
+    // find largest gap
+    double threshold = 2.0;
+    int minSizeGap = 10;
+    struct Gap{
+        int begin;
+        int end;
+        int size;
+        int center;
+        
+        Gap(int b, int e){
+            begin = b;
+            end = e;
+            center = begin + (end-begin)/2;
+            size = end - begin;
+        }
+    };
+    
+    std::vector<Gap> gaps;
+    
+    int beginGap = -1, endGap = -1;
+    int n = measurement_laser_.size();
+    for (int i=45; i<n-45; i++) {
+        if (measurement_laser_[i].length >= threshold){
+            if (beginGap < 0){
+                beginGap = i;                
+            }
+            if (measurement_laser_[i+1].length < threshold){
+                endGap = i;
+                if (endGap - beginGap >= minSizeGap){
+                    Gap gap(beginGap, endGap);
+                    gaps.push_back(gap);                    
+                }                
+                // reset gap
+                beginGap = -1;
+                endGap = -1;
+            }
+        }        
+    }
+    // if no gap, start rotating 
+    if (gaps.empty()) {
+        v = 0.0;
+        w = 0.5;        
+    } else {
+        // find closer gap to the center
+        int distToCenter = 1000;
+        Gap bestGap(0, 0);
+        for(Gap gap: gaps){
+            if (abs(n/2 - gap.center) < distToCenter){
+                distToCenter = abs(n/2 - gap.center);
+                bestGap = gap;
+            } 
+            if ((n/2 >= gap.begin) && (n/2 <= gap.end)){
+                bestGap = gap;                
+                break;
+            }            
+        }
+        double angle = measurement_laser_[bestGap.center].angle;        
+        w = min(0.5, max(-0.5, angle)); // clip angle within limits
+        v = 0.2 + 0.6 * (1 - abs(w) / 0.5);
+    }
+    cmd_.set(v, w);
 }
 
 
