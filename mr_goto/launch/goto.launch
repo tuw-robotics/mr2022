@@ -6,7 +6,7 @@
         <arg name="min_speed"  value="1.0"/>
     </include>
     
-    <arg name="map"  default="cave.yaml"/>
+    <arg name="map"  default="line.yaml"/>
     <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/maps/$(arg map)"/>
 
 </launch>
