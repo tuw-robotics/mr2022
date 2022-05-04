@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="robot_name" default="r1" />
+  <arg name="scan" default="front_laser/scan" />
+  <arg name="cfg" default="01" />
+  
+  <group ns="$(arg robot_name)">
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+      <remap from="scan" to="$(arg scan)"/>   
+      <remap from="map" to="/map"/>   
+      <remap from="static_map" to="/static_map"/>     
+      <rosparam file="$(find mr_launch)/cfg/amcl/$(arg cfg)/amcl_filter.yaml" command="load"/>
+      <rosparam file="$(find mr_launch)/cfg/amcl/$(arg cfg)/amcl_laser_model.yaml" command="load"/>
+      <rosparam file="$(find mr_launch)/cfg/amcl/$(arg cfg)/amcl_motion_model.yaml" command="load"/>
+      <param name="odom_frame_id" value="$(arg robot_name)/odom"/>    
+      <param name="base_frame_id" value="$(arg robot_name)/base_link"/>  
+      <param name="global_frame_id" value="map"/>      
+    </node>
+  </group>
+  
+
+</launch>

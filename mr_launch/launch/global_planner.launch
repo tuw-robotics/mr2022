@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="global_planner" type="planner" name="global_planner" output="screen">  
+      <rosparam file="$(find mr_launch)/cfg/global_planner/costmap.yaml" command="load" />
+      <param name="planner/use_dijkstra" value="false"/>    
+    </node>
+  
+</launch>

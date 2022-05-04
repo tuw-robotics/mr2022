@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+
+	<arg name="robot_name" default="" />
+	<arg name="scan" default="base_scan" />
+	<arg name="cfg" default="01" />
+  
+	<node pkg="move_base" type="move_base" name="move_base" output="screen">  
+		<remap from="scan" to="$(arg scan)"/>     
+		<rosparam file="$(find mr_launch)/cfg/move_base/$(arg cfg)/base_local_planner.yaml" command="load" />
+		<rosparam file="$(find mr_launch)/cfg/move_base/$(arg cfg)/global_costmap.yaml" command="load" />
+		<rosparam file="$(find mr_launch)/cfg/move_base/$(arg cfg)/local_costmap.yaml" command="load" />
+	</node>
+  
+</launch>

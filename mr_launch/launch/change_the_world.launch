@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="rviz" type="rviz" name="rviz" output="screen"/>
+    <include file="$(find mr_launch)/launch/map_server.launch" pass_all_args="True"/>
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+      <remap from="scan" to="base_scan"/>   
+    </node>
+    <include file="$(find mr_launch)/launch/move_base_stage.launch"/>
+</launch>
