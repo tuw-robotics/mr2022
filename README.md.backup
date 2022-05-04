@@ -1,0 +1,40 @@
+# Mobile Robotics 2022
+## 10.5.2022
+
+**Allacher Alexander, Voboril Florentina, Zehetner Clemens**
+
+
+### Task 0: Not being completely incompetent with Git `[20/20]`
+
+
+### Task 1: Publish the used map `[45/45]`
+
+
+
+
+
+
+
+
+### Task 2: Initialise self-localisation and trigger driving using RViz `[50/50]`
+
+
+
+
+### Task 3: Connect self-localisation and planner `[45/45]`
+
+
+
+### Task 4: Planner `[40/40]`
+
+#### 4.1: New Node `[50/50]`
+
+#### 4.2: Simple, no Obstacle `[50/50]`
+
+#### 4.3: Avoid Obstacle `[50/50]`
+
+#### 4.4: Plan `[100/100]`
+
+
+
+#### Task 5: Reach a goal pose by planning a path and following the path
