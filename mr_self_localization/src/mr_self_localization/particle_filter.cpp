@@ -105,6 +105,25 @@ void ParticleFilter::update ( const Command &u ) {
         /**
          * @node your code
          **/
+        std::normal_distribution<double> dist_v(0,config_.alpha1*u.v()*u.v() + config_.alpha2*u.w()*u.w());
+        std::normal_distribution<double> dist_w(0,config_.alpha3*u.v()*u.v() + config_.alpha4*u.w()*u.w());
+        std::normal_distribution<double> dist_g(0,config_.alpha5*u.v()*u.v() + config_.alpha6*u.w()*u.w());
+        double v = u.v() + dist_v(generator_);
+        double w = u.w() + dist_w(generator_);
+        double gamma = dist_g(generator_);
+        if(abs(w)<0.0001) { 
+            double x = s->x() + dt * v * s->theta_cos();
+            double y = s->y() + dt * v * s->theta_sin();
+            double theta = s->theta() + w*dt + gamma*dt;
+            s->set(x,y,theta,1);
+        }
+        else {
+            double x = s->x() - v/w*sin(s->theta()) + v/w*sin(s->theta() + w*dt);
+            double y = s->y() + v/w*cos(s->theta()) - v/w*cos(s->theta() + w*dt);
+            double theta = s->get_theta() + w*dt + gamma*dt;
+            s->set(x,y,theta,1);
+        }
+        
 #endif
     }
 }
@@ -134,6 +153,18 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
     /**
      * @node your code
      **/
+    cv::Mat &backg = figure_map.background(); 
+    for ( int r = 0; r < backg.rows; r++ ) {
+        for ( int c = 0; c < backg.cols; c++ ) {
+            Point2D pm ( c,r);
+            int cb = 255-(int)(likelihood_field_ ( r,c )*255);  // calculate color intensity (0..1 --> 0..255)
+            cv::Point pi = pm.cv();
+            cv::Vec3b &pixel = backg.at<cv::Vec3b> ( pi );
+            pixel[0] = cb;  // set blue value (less blue = more yellow)
+        }
+    }
+    
+            
 #endif
     double scale =  255.0 / samples_weight_max_ ;
     char text[0xFF];
@@ -152,6 +183,12 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
         /**
          * @node your code
          **/
+        int c_b = (int)(s->weight()/samples_weight_max_*255.0); // calculate color intensity 
+        cv::Scalar color = cv::Scalar(255-c_b, c_b,0);          // set green and blue indirect proportional
+        figure_map.symbol ( Pose2D(s->position().x(), s->position().y(), s->theta()), 0.1, color, 1, cv::LINE_AA);
+        //figure_map.symbol ( s->position(), color);
+        
+        
 #endif
     }
     sprintf ( text, "%4.3fsec", duration_last_update_.total_microseconds() /1000000. );
@@ -222,10 +259,11 @@ void ParticleFilter::updateLikelihoodField () {
     /**
      * @node your code
      **/
+    cv::distanceTransform(map_, distance_field_pixel_, cv::DIST_L2, 3, CV_32F);
+    distance_field_ = distance_field_pixel_ / scale_;
     for ( int r = 0; r < likelihood_field_.rows; r++ ) {
         for ( int c = 0; c < likelihood_field_.cols; c++ ) {
-            float v = ( float ) c / ( float ) likelihood_field_.cols;
-            likelihood_field_ ( r,c ) = v;
+            likelihood_field_ ( r,c ) = boost::math::pdf(normal_likelihood_field, distance_field_(r,c));
         }
     }
 #endif
@@ -244,9 +282,18 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
     /**
      * @node your code
      **/
-    /// Dummy: fills all values with the same value
-    for ( size_t i = 0; i < used_beams.size(); i++ ) {
-        used_beams[i] = i;
+    // Random
+    if(config_.random_beams) {
+        for ( size_t i = 0; i < config_.nr_of_beams; i++ ) {
+            std::uniform_int_distribution<int> dis(0, z->size());
+            used_beams[i] = dis(generator_);
+        }
+    }
+    // evenly distributed
+    else {
+        for ( size_t i = 0; i < config_.nr_of_beams; i++ ) {
+            used_beams[i] = i*z->size()/config_.nr_of_beams;
+        }
     }
 #endif
 
@@ -266,9 +313,31 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
     /**
      * @node your code
      **/
-    /// Dummy: computes a funny weight
-    auto weight_sample = [] ( SamplePtr &s ) {
-        s->weight() = sqrt ( s->x() *s->x() +s->y() *s->y() );
+    auto weight_sample = [&] ( SamplePtr &s ) {
+        // initialize weight
+        s->weight() = 1;
+        double q = 1;
+        // iterate over all used beams
+        for ( size_t i = 0; i < used_beams.size(); i++ ) {
+            // get current beam
+            MeasurementLaser::Beam b = z->operator[](used_beams[i]);    
+            // ignore if beam longer than z_max
+            if ( b.length < config_.z_max ) {       
+                // Transform endpoint into robot space
+                double x = s->x() + z->pose2d().x() * s->theta_cos() - z->pose2d().y() * s->theta_sin() +  b.length * cos(s->theta() + b.angle);
+                double y = s->y() + z->pose2d().y() * s->theta_cos() + z->pose2d().x() * s->theta_sin() + b.length * sin(s->theta() + b.angle);
+                // Transform endpoint into world space
+                Point2D z = tf_*Point2D(x,y);
+                // check if coordinates exist, then update weight
+                double qr = config_.z_rand/config_.z_max;
+                double qh = 0;
+                if(z.x() >= 0 && z.x() < likelihood_field_.cols && z.y() >= 0 && z.y() < likelihood_field_.rows) {
+                    qh =  config_.z_hit * likelihood_field_.at<float>(z.cv());
+                }
+                q *= qr + qh;
+            }
+        }
+        s->weight()=q;
     };
 #endif
     std::for_each ( samples.begin(), samples.end(), weight_sample );
@@ -285,7 +354,6 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
         s->weight() /= samples_weight_sum;
         s->idx() = i;
         if ( samples_weight_max_ < s->weight() ) samples_weight_max_ = s->weight();
-        //std::cout << s->idx() << ": " << s->weight() << std::endl;
     }
 }
 
@@ -304,6 +372,58 @@ void ParticleFilter::resample () {
     /**
      * @node your code
      **/
+    // number of samples to resample (without -1 all samples could get removed)
+    size_t M = samples.size()*config_.resample_rate-1;
+    // Clone M top, remove M lowest
+    if(config_.resample_mode==0) {
+        // remove M samples with lowest weight (samples sorted in weighing)
+        for(size_t i = 0; i < M; i++) {
+            samples.pop_back();
+        }
+        // clone samples
+        for(size_t i = 0; i < M; i++) {
+            SamplePtr &parent = samples[i];
+            samples.push_back ( std::make_shared<Sample> ( *parent ) );
+            SamplePtr &s  = samples.back();
+            normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+        }
+    } else {
+        double m1 = 1.0/M;
+        std::vector< SamplePtr > samples_new;             // new particles
+        std::uniform_real_distribution<double> dis(0.0, m1);
+        double r = dis(generator_);
+        double c = samples[0]->weight();        // cummulative weight
+        size_t i = 0;                           // current index
+        for(size_t m=0; m<M; m++) {
+            double U = r + m * m1;      // threshold
+            while (U > c) {             // look for particle to sample
+                i=i+1;
+                if(i>=samples.size()) { // prevent index-out-of-bounds
+                    break;
+                }
+                c=c+samples[i]->weight();
+            }
+            if(i>=samples.size()) { // prevent index-out-of-bounds
+                break;
+            }
+            // add the new particle to the list
+            SamplePtr &parent = samples[i];
+            samples_new.push_back ( std::make_shared<Sample> ( *parent ) );
+            SamplePtr &s  = samples_new.back();
+            normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+        }
+        // remove M lowest particles
+        for(size_t i = 0; i < M; i++) {
+            samples.pop_back();
+        }
+        // add the M new particles
+        for(size_t i = 0; i < samples_new.size(); i++) {
+            SamplePtr &parent = samples_new[i];
+            samples.push_back ( std::make_shared<Sample> ( *parent ) );
+        }
+        
+        
+    }
 #endif
         /// update number of samples
         if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );

@@ -51,7 +51,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_laser_ =
+     sub_laser_ = n.subscribe("scan", 1000, &LocalPlannerNode::callbackLaser, this);
 #endif
 
 
@@ -98,14 +98,14 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     /**
      * @node your code
      **/
-    //measurement_laser_.range_max() =0;  /// @ToDo
-    //measurement_laser_.range_min() = 0; /// @ToDo
-    //measurement_laser_.resize ( 0 ); /// @ToDo
-    //for ( ....
-    /// measurement_laser_ [i].length  =
-    /// measurement_laser_ [i].angle  =
-    /// measurement_laser_ [i].end_point  =
-    //}
+    measurement_laser_.range_max() = _laser.range_max;
+    measurement_laser_.range_min() = _laser.range_min;
+    measurement_laser_.resize ( _laser.ranges.size() );
+    for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+     measurement_laser_[i].length  = _laser.ranges[i];
+     measurement_laser_[i].angle  = _laser.angle_min +_laser.angle_increment*i;
+     measurement_laser_[i].end_point  = Point2D(0.22+measurement_laser_[i].length * cos(measurement_laser_[i].angle), measurement_laser_[i].length * sin(measurement_laser_[i].angle));
+    }
 #endif
 }
 /**
@@ -120,6 +120,7 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
     double a = yaw;
     odom_.set ( odom.pose.pose.position.x, odom.pose.pose.position.y, a );
     odom_.recompute_cached_cos_sin();
+    ROS_INFO ( "callbackOdomLocalPlanner!" );
 }
 
 

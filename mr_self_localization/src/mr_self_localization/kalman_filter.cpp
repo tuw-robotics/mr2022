@@ -70,12 +70,12 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
         /**
          * @node your code
          **/
-        //Point2D p0 =
-        //Point2D p1 =
-        //Point2D pc =
-        //figure_map.line ( p0, p1, color );
-        //figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
-        //figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+        Point2D p0 = M*measurement_linesegments_[i].p0();
+        Point2D p1  = M*measurement_linesegments_[i].p1();
+        Point2D pc = M*measurement_linesegments_[i].pc();
+        figure_map.line ( p0, p1, color );
+        figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
 #endif
 
     }
@@ -93,6 +93,10 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
             /**
              * @node your code
              **/
+            Point2D p0 = map_linesegments_[measurement_match_[i]].closestPointTo(M*measurement_linesegments_[i].p0());
+            Point2D p1 = map_linesegments_[measurement_match_[i]].closestPointTo(M*measurement_linesegments_[i].p1());
+            figure_map.line ( p0, M*measurement_linesegments_[i].p0(), Figure::blue );
+            figure_map.line ( p1, M*measurement_linesegments_[i].p1(), Figure::blue );
 #endif
 
         }
@@ -118,10 +122,19 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
     /**
      * @node your code
      **/
-    cv::Matx<double, 2, 2> E ( 1, 0, 0, 1 );  /// must be changed
+    Tf2D tf = figure_map.Mw2m();
+    
+    cv::Matx<double, 2,2> mw2m(tf(0,0), tf(0,1), tf(1,0), tf(1,1));
+    cv::Matx<double, 2,2> P2 ( P(0,0), P(0,1), P(1,0), P(1,1));
+    
+    cv::Matx<double, 2,2> E = mw2m * P2 * mw2m.t();
     cv::Mat_<double> eigval, eigvec;
     cv::eigen ( E, eigval, eigvec );
-    cv::RotatedRect ellipse ( ( figure_map.Mw2m() * pose_estimated_.position() ).cv(),cv::Size ( 49,29 ), 93 ); /// must be changed
+    double angle = atan2(eigvec.at<double>(0,1), eigvec.at<double>(0,0)) * 180.0 / M_PI;;
+    
+    double width = 2*sqrt(eigval.at<double>(0));
+    double height = 2*sqrt(eigval.at<double>(1));
+    cv::RotatedRect ellipse ( ( figure_map.Mw2m() * pose_estimated_.position() ).cv(),cv::Size ( width, height ), angle ); /// must be changed
     cv::ellipse ( figure_map.view(),ellipse, Figure::magenta, 1, cv::LINE_AA );
 #endif
 
@@ -167,10 +180,15 @@ void KalmanFilter::plotHoughSpace ( ) {
             /**
              * @node your code
              **/
-            //cv::Point hspace =
-            //if ( hspace.inside ( rectSpace ) ) {
-            //    figure_hspace_.view().at<cv::Vec3b> ( hspace ) -=  cv::Vec3b ( 50,10,10 );
-            //}
+            double rho = p0.x() * cos(alpha) + p0.y() *sin(alpha);
+
+            int rho_normal = config_.hough_space_pixel_rho / config_.hough_space_meter_rho * (config_.hough_space_meter_rho - rho);
+            int alpha_normal = config_.hough_space_pixel_alpha / (2*M_PI*1.1) * (alpha + M_PI*1.1);
+    
+             cv::Point hspace(alpha_normal, rho_normal);
+             if ( hspace.inside ( rectSpace ) ) {
+                 figure_hspace_.view().at<cv::Vec3b> ( hspace ) -=  cv::Vec3b ( 50,10,10 );
+             }
 #endif
         }
     }
@@ -190,10 +208,10 @@ void KalmanFilter::plotHoughSpace ( ) {
         /**
          * @node your code
          **/
-        //Polar2D polar =
-        //figure_hspace_.circle ( polar, 3, color, 1 );
-        //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
-        //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+        Polar2D polar = predicted_linesegments_[i].toPolar();
+        figure_hspace_.circle ( polar, 3, color, 1 );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
 #endif
     }
     cv::RotatedRect ellipse;
@@ -214,10 +232,10 @@ void KalmanFilter::plotHoughSpace ( ) {
         /**
          * @node your code
          **/
-        //ellipse.center =
-        //cv::ellipse ( figure_hspace_.view(), ellipse, color, 1, cv::LINE_AA );
-        //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
-        //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+        ellipse.center = (tf * polar).cv();
+        cv::ellipse ( figure_hspace_.view(), ellipse, color, 1, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
 #endif
     }
     cv::imshow ( figure_hspace_.title(),figure_hspace_.view() );
@@ -240,7 +258,7 @@ void KalmanFilter::data_association ( ) {
         /**
          * @node your code
          **/
-        //predicted_linesegments_[i].set
+        predicted_linesegments_[i].set(M*map_linesegments_[i].p0(),M*map_linesegments_[i].p1());
 #endif
     }
 
@@ -265,6 +283,17 @@ void KalmanFilter::data_association ( ) {
             /**
              * @node your code
              **/
+            double p0_dist = pow(predicted_linesegments_[j].distanceTo(measurement_linesegments_[i].p0()),2);
+            double p1_dist = pow(predicted_linesegments_[j].distanceTo(measurement_linesegments_[i].p1()),2);
+            float end_dist = sqrt(p0_dist + p1_dist);
+            
+            float dist = measurement.distanceTo(prediction);
+            if(dist < dMin && end_dist < config_.data_association_distance_to_endpoints) {
+                dMin = dist;
+                if(dist <= config_.data_association_line_rho && abs(moro::angle_difference(measurement.alpha(), prediction.alpha())) <= config_.data_association_line_alpha) {
+                    measurement_match_[i] = j;
+                }
+            }
 #endif
         }
     }
@@ -318,8 +347,44 @@ void KalmanFilter::prediction ( const Command &u ) {
         /**
          * @node your code
          **/
-        xp = x;
-        Pp = P;
+        int ms = config_.forward_prediction_time * 1000;
+        boost::posix_time::time_duration duration = duration_last_update_ + boost::posix_time::millisec ( ms );
+        double dt = duration.total_microseconds() /1000000.;
+        double t = x[2];
+        double v = u.v();
+        double w = u.w();
+        // for small w, thanks to WolframAlpha
+        if(abs(w) < 0.00001) {
+            G = cv::Matx<double, 3, 3> (1, 0, -dt*v*sin(t), 
+                        0, 1, dt*v*cos(t),
+                        0, 0, 1
+            );
+            V = cv::Matx<double, 3, 2> ( dt*cos(t), -pow(dt,2)*v*sin(t)/2,
+                        dt*sin(t), pow(dt,2)*v*cos(t)/2,
+                        0, dt
+            );
+        } else {
+            G = cv::Matx<double, 3, 3> (1, 0, -(v/w)*cos(t)+(v/w)*cos(t + w*dt), 
+                        0, 1, -(v/w)*sin(t) + (v/w)*sin(t+w*dt),
+                        0, 0, 1
+            );
+            V = cv::Matx<double, 3, 2> ( (-sin(t) + sin(t+w*dt))/w, v*(sin(t) - sin(t+w*dt))/pow(w,2) + v*cos(t+w*dt)*dt/w,
+                        (cos(t) - cos(t+w*dt))/w, -v*(cos(t) - cos(t+w*dt))/pow(w,2) + v*sin(t+w*dt)*dt/w,
+                        0, dt
+            );
+        }
+        M = cv::Matx<double, 2, 2>( config_.alpha_1*pow(v,2) + config_.alpha_2*pow(w,2), 0,
+            0, config_.alpha_3*pow(v,2) + config_.alpha_4*pow(w,2)
+        );
+        R = V*M*V.t();
+        // for small w, thanks to WolframAlpha
+        if(abs(w) < 0.00001) {
+            xp = x + cv::Vec<double, 3> ( dt*v*cos(t), dt*v*sin(t), w*dt);
+        } else {
+            xp = x + cv::Vec<double, 3> ( -(v/w)*sin(t) + (v/w)*sin(t + w*dt), (v/w)*cos(t) - (v/w)*cos(t+w*dt), w*dt);
+        }
+        Pp = G * P * G.t() + R;
+            
 #endif
     } else {
         xp = x;
@@ -355,15 +420,32 @@ void KalmanFilter::correction () {
         /**
          * @node your code
          **/
-        /// first the prediction and the measurement into polar space and compute the distance
-        // H = ?
-        // v = ?
-        // Si = ?
-        // d_mahalanobis = ?
-        // K = ?
-        // dx = ?
-        // Pc = ?
-        // xc = ?
+        if(idx_map >= 0) {
+            Pose2D u(xc(0),xc(1),xc(2));
+            Point2D z_r = measurement_linesegments_[idx_measurement].toPolar();
+            Point2D z_w = map_linesegments_[idx_map].toPolar();
+            cv::Vec<double, 2> z;
+            if( z_w.radius() > ( u.x()*cos(z_w.angle()) + u.y()*sin(z_w.angle()) ) ) {
+                z = cv::Vec<double, 2>( moro::angle_normalize(z_w.angle() - u.theta()), 
+                                        z_w.radius() - (u.x()*cos(z_w.angle()) + u.y()*sin(z_w.angle()))
+                );
+                H = cv::Matx<double, 2, 3>(0, 0, -1, 
+                                           -cos(z_w.angle()), -sin(z_w.angle()), 0);
+            } else {
+                z = cv::Vec<double, 2>( moro::angle_normalize(z_w.angle() + M_PI - u.theta()), 
+                                        (u.x()*cos(z_w.angle()) + u.y()*sin(z_w.angle())) - z_w.radius()
+                );
+                H = cv::Matx<double, 2, 3>(0, 0, -1, 
+                                           cos(z_w.angle()), sin(z_w.angle()), 0);
+            }
+            Si = H * Pc * H.t() + Q;
+            K = Pc * H.t() * Si.inv();
+            v = cv::Matx<double, 2, 1>(moro::angle_normalize(z_r.angle() - z(0)), z_r.radius() - z(1));
+            cv::Matx<double, 3, 1> kv = K*v;
+            xc = xc + cv::Vec<double, 3>(kv(0,0), kv(0,1), kv(0,2));
+            Pc = (cv::Matx<double, 3, 3>::eye() - K*H) * Pc;
+            
+        }
 
 #endif
     }

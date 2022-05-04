@@ -127,7 +127,6 @@ private:
      * removes particles or adds particles if the number of particles changed
      **/
     void resample ();
-    std::vector< SamplePtr > samples;             /// particles
     cv::Mat_<uint8_t> map_;                       /// map image as opencv matrix
     cv::Mat_<float> distance_field_pixel_;        /// distance field in pixels
     cv::Mat_<float> distance_field_;              /// distance field in meters

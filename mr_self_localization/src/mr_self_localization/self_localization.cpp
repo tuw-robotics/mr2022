@@ -24,7 +24,31 @@ void SelfLocalization::onMouseMap ( int event, int x, int y, int flags, void* pa
      * @node your code
      **/
     if ( event == cv::EVENT_LBUTTONDOWN ) {
-        std::cout << self_localization->mouse_on_map_ << std::endl;
+        // save position
+        pose = self_localization->mouse_on_map_;
+        pose.set_theta(0);
+    }
+    if ( event == cv::EVENT_LBUTTONUP ) {
+        // calculate distance between click and release
+        double dx = self_localization->mouse_on_map_.x()-pose.x();
+        double dy = self_localization->mouse_on_map_.y()-pose.y();
+        double dist = sqrt(dx*dx + dy*dy);
+        if(dist == 0) {
+            pose.set_theta(0);
+        } else {
+            // set theta according to the angle between click and release
+            if(dx <= 0) {
+                pose.set_theta(acos(dy/dist)+M_PI/2);
+            } else {
+                pose.set_theta(-acos(dy/dist)+M_PI/2);
+            }
+        }
+        // reinizialize filter with new pose
+        self_localization->pose_filter_->reinitialize(pose);
+    }
+    if ( event == cv::EVENT_MBUTTONUP) {
+        // reinizialize filter with ground truth
+        self_localization->pose_filter_->reinitialize(self_localization->pose_ground_truth_);
     }
 #endif
 }
@@ -70,6 +94,7 @@ void SelfLocalization::plotMap() {
     figure_map_.clear();
     char text[0xFF];
 
+    
     //cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
     cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
 
@@ -85,8 +110,8 @@ void SelfLocalization::plotMap() {
         /**
          * @node your code
          **/
-        Point2D pm ( cos ( i ),sin ( i ) );
-        figure_map_.symbol ( pm, Figure::red );
+        
+        figure_map_.symbol ( M*measurement_laser_->operator[](i).end_point, Figure::red );
 #endif
 
     }
@@ -102,6 +127,7 @@ void SelfLocalization::plotMap() {
     /**
      * @node your code
      **/
+    cv::putText ( figure_map_.view(), "Team Yellow", cv::Point ( 20,figure_map_.height()-10 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
 #endif
     figure_map_.symbol ( odom_, 0.2, Figure::cyan, 1 );
     figure_map_.symbol ( pose_ground_truth_, 0.2, Figure::orange, 1 );

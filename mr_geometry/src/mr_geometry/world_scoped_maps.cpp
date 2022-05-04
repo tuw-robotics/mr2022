@@ -29,21 +29,23 @@ void WorldScopedMaps::init () {
      **/
 #if GEOMETRY_EXERCISE >= 10
 #else
-    //dx_ =   // visual width
-    //dy_ =   // visual height
-    //sx_ =   // scaling x
-    //sy_ =   // scaling y
-    //ox_ =   // offset image space x
-    //oy_ =   // offset image space y
-    //mx_ =   // visual image space x
-    //my_ =   // visual image space y
-    cv::Matx<double, 3, 3 > Tw ( 1, 0, 0, 0, 1, 0, 0, 0, 1 ); // translation visual space
-    cv::Matx<double, 3, 3 > Sc ( 1, 0, 0, 0, 1, 0, 0, 0, 1 ); // scaling
-    cv::Matx<double, 3, 3 > Sp ( 1, 0, 0, 0, 1, 0, 0, 0, 1 ); // mirroring
-    cv::Matx<double, 3, 3 > R ( 1, 0, 0, 0, 1, 0, 0, 0, 1 );  // rotation
-    cv::Matx<double, 3, 3 > Tm ( 1, 0, 0, 0, 1, 0, 0, 0, 1 ); // translation image space
+    
+    dx_ =  abs(max_x_) + abs(min_x_); // visual width
+    dy_ =  abs(max_y_) + abs(min_y_); // visual height
+    sx_ =  width_pixel_ / dx_; // scaling x
+    sy_ =  height_pixel_ / dy_; // scaling y
+    ox_ =  sx_ * (dx_ / 2); // offset image space x
+    oy_ =  sy_ * (dy_ / 2); // offset image space y
+    mx_ =  (max_x_ + min_x_) / 2 * -1; // visual image space x
+    my_ =  (max_y_ + min_y_) / 2 * -1; // visual image space y
+    
+    cv::Matx<double, 3, 3 > Tw ( 1, 0, mx_, 0, 1, my_, 0, 0, 1 ); // translation visual space	= map offset
+    cv::Matx<double, 3, 3 > Sc ( sx_, 0, 0, 0, sy_, 0, 0, 0, 1 ); // scaling			= meter -> pixel
+    cv::Matx<double, 3, 3 > Sp ( -1, 0, 0, 0, 1, 0, 0, 0, 1 ); // mirroring			= flip
+    cv::Matx<double, 3, 3 > R  ( cos(rotation_), -sin(rotation_), 0, sin(rotation_), cos(rotation_), 0, 0, 0, 1 ); // rotation
+    cv::Matx<double, 3, 3 > Tm ( 1, 0, ox_, 0, 1, oy_, 0, 0, 1 ); // translation image space	= image offset from upper left corner
+
     Mw2m_ = Tm * R * Sp * Sc * Tw;
-    Mw2m_ = cv::Matx<double, 3, 3 > ( 15, 3, 350, 2, 5, 400, 0, 0, 1 ); ///  @ToDo remove this line dummy matrix
 #endif
 
     Mm2w_ = Mw2m_.inv();

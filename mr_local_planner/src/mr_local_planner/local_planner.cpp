@@ -34,11 +34,7 @@ void LocalPlanner::init() {
                   cv::Point ( 5,figure_local_.view().rows-10 ),
                   cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 
-    /**
-     * @ToDo Wanderer
-     * change the Maxima Musterfrau to your name
-     **/
-    cv::putText ( figure_local_.background(), "Maxima Musterfrau",
+    cv::putText ( figure_local_.background(), "Team Yellow",
                   cv::Point ( figure_local_.view().cols-250, figure_local_.view().rows-10 ),
                   cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 }
@@ -61,9 +57,9 @@ void LocalPlanner::plotLocal() {
     /**
      * @node your code
      **/
-    figure_local_.symbol ( Point2D ( 1,2 ), Figure::red ); /// Demo remove afterwards
-    figure_local_.circle ( Point2D ( 2,2 ), 2, Figure::green, 2 ); /// Demo remove afterwards
-    // for in measurement_laser_ {}
+    for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+        figure_local_.circle ( measurement_laser_[i].end_point, 2, Figure::green, 2 );
+    }
 #endif
 
     /**
@@ -137,12 +133,116 @@ void LocalPlanner::wanderer1() {
     * write one or two wanderer behaviors to keep the robot at least 120sec driving without a crash by exploring as much as possible.
     * I know it sounds weird but don't get too fancy.
     **/
+    double v = 0.0, w = 0.0;
+    if ( measurement_laser_.empty() ) {
+        v = 0.0, w = -0.1;
+    } else {
+        int min_i = 0;
+        double min_dis = 100;
+        // Find closest Point
+        for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+            if(measurement_laser_[i].length < min_dis && i >measurement_laser_.size()/3  && i <measurement_laser_.size()*2/3 ) {
+                min_i = i;
+                min_dis = measurement_laser_[min_i].length;
+            }
+            if(measurement_laser_[i].length < 3) {
+                measurement_laser_[i].length=0;
+            }
+        }
+        // Set linear speed according to closest distance
+        v = min_dis / measurement_laser_.range_max() * 0.8;
+        if(min_dis <0.05) {
+            v=0.0;}
+        
+        // Safety Bubble
+        for ( int i = min_i; i < measurement_laser_.size() && i < min_i+3; i++ ) {
+            measurement_laser_[i].length=0;
+        }
+        for ( int i = min_i; i > 0 && i > min_i-3; i-- ) {
+            measurement_laser_[i].length=0;
+        }
+        // Find Gaps
+        int gap_start = measurement_laser_.size()/4;
+        int gap_end = measurement_laser_.size()/4;
+        int best_gap_start = measurement_laser_.size()/4;
+        int best_gap_end = measurement_laser_.size()/4;
+        for ( int i = measurement_laser_.size()/4; i < measurement_laser_.size()*3/4; i++ ) {
+            if(measurement_laser_[i].length < 0.5) {
+                gap_end = i-1;
+                if((best_gap_end - best_gap_start) < (gap_end - gap_start)) {
+                    best_gap_start = gap_start;
+                    best_gap_end = gap_end;
+                }
+                gap_start = i;
+            }
+        }
+        gap_end = measurement_laser_.size()*3/4-1;
+        if((best_gap_end - best_gap_start) < (gap_end - gap_start)) {
+            best_gap_start = gap_start;
+            best_gap_end = gap_end;
+        }
+        if(measurement_laser_[(best_gap_end+best_gap_start)/2].angle < 0) {
+            w = (measurement_laser_[(best_gap_end+best_gap_start)/2].angle / (M_PI*3/4) * 0.5);
+        } else {
+            w = (measurement_laser_[(best_gap_end+best_gap_start)/2].angle / (M_PI*3/4) * 0.5);
+        }
+    }
+    cmd_.set ( v, w );
+    
 }
 void LocalPlanner::wanderer2() {
     /**
     * @ToDo Wanderer
     * OPTIONAL: if you like you can write another one :-)
     **/
+    double v = 0.0, w = 0.0;
+    if ( measurement_laser_.empty() ) {
+        v = 0.0, w = -0.1;
+    } else {
+        int min_i = 0;
+        // Find closest Point
+        for ( int i = measurement_laser_.size()/4; i < measurement_laser_.size()*3/4; i++ ) {
+            if(measurement_laser_[i].length < measurement_laser_[min_i].length) {
+                min_i = i;
+            }
+        }
+        // Set linear speed according to closest distance
+        v = measurement_laser_[min_i].length / measurement_laser_.range_max() * 0.8;
+        
+        // Safety Bubble
+        for ( int i = min_i; i < measurement_laser_.size() && i < min_i+3; i++ ) {
+            measurement_laser_[i].length=0;
+        }
+        for ( int i = min_i; i > 0 && i > min_i-3; i-- ) {
+            measurement_laser_[i].length=0;
+        }
+        // Find Gaps
+        int gap_start = 0;
+        int gap_end = 0;
+        int best_gap_start = 0;
+        int best_gap_end = 0;
+        for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+            if(measurement_laser_[i].length < 0.5) {
+                gap_end = i-1;
+                if((best_gap_end - best_gap_start) < (gap_end - gap_start)) {
+                    best_gap_start = gap_start;
+                    best_gap_end = gap_end;
+                }
+                gap_start = i;
+            }
+        }
+        gap_end = measurement_laser_.size()-1;
+        if((best_gap_end - best_gap_start) < (gap_end - gap_start)) {
+            best_gap_start = gap_start;
+            best_gap_end = gap_end;
+        }
+        if(measurement_laser_[(best_gap_end+best_gap_start)/2].angle < 0) {
+            w = (measurement_laser_[(best_gap_end+best_gap_start)/2].angle / (M_PI*3/4) * 0.5);
+        } else {
+            w = (measurement_laser_[(best_gap_end+best_gap_start)/2].angle / (M_PI*3/4) * 0.5);
+        }
+    }
+    cmd_.set ( v, w );
 }
 
 

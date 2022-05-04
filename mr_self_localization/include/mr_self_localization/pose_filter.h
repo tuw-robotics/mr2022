@@ -4,6 +4,7 @@
 #include <memory>
 #include <mr_geometry/geometry.h>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <mr_self_localization/sample.h>
 
 namespace moro {
 
@@ -19,6 +20,7 @@ public:
         PARTICLE_FILTER = 0,
         KALMAN_FILTER = 1
     };
+    std::vector< SamplePtr > samples;             /// particles
     /**
      * Constructor
      * @param type used identify the filter type

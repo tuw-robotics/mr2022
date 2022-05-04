@@ -8,6 +8,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include <sensor_msgs/LaserScan.h>
 #include <dynamic_reconfigure/server.h>
 #include <mr_self_localization/ParticleFilterConfig.h>
@@ -22,6 +23,7 @@ public:
     SelfLocalizationNode ( ros::NodeHandle & n ); /// Constructor
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
+    void publishParticles ();
 private:
     ros::NodeHandle n_;             /// node handler to the root node
     ros::NodeHandle n_param_;       /// node handler to the current node
@@ -31,8 +33,10 @@ private:
     ros::Subscriber sub_initial_pose_; /// Subscriber to receive a standard pose message for initialization (rviz)
     ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
+    ros::Publisher pub_particles_; /// publisher for the particles
     std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
     geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
+    geometry_msgs::PoseArray particles_;
     void callbackCmd ( const geometry_msgs::Twist& ); /// callback function to catch motion commands
     void callbackOdometry ( const nav_msgs::Odometry& ); /// callback function to catch odometry messages
     void callbackGroundTruth ( const nav_msgs::Odometry& ); /// callback function to catch  ground truth pose messages

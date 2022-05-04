@@ -2,6 +2,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 #include <boost/filesystem.hpp>
 
 using namespace moro;
@@ -21,6 +22,8 @@ int main ( int argc, char **argv ) {
 
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
+        /// publishes the particles
+        self_localization.publishParticles();
 
         /// plots measurements
         self_localization.plot();
@@ -87,6 +90,9 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
 
     /// defines a publisher for the resulting pose
     pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );
+    
+    /// defines a publisher for the resulting particles
+    pub_particles_ = n.advertise<geometry_msgs::PoseArray> ( "particles", 1 );
 
     pose_.header.seq = 0;
 
@@ -137,6 +143,7 @@ void SelfLocalizationNode::localization() {
     }
     /// localization
     SelfLocalization::localization ();
+    
 }
 
 /**
@@ -156,9 +163,7 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
         /**
          * @node your code
          **/
-        transform.setRotation ( tf::Quaternion ( 0,0,0,1 ) );    /// Dummy to remove
-        transform.setOrigin ( tf::Vector3 ( 1,0,0 ) );           /// Dummy to remove
-        // tf_listener_-> .....
+         tf_listener_->lookupTransform("/base_link", _laser.header.frame_id, ros::Time(0), transform);
 #endif
         double roll = 0, pitch = 0, yaw = 0;
         transform.getBasis().getRPY ( roll, pitch, yaw );
@@ -168,17 +173,19 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
         ros::Duration ( 1.0 ).sleep();
     }
 
+    int nr = ( _laser.angle_max - _laser.angle_min ) / _laser.angle_increment;
     measurement_laser_->range_max() = _laser.range_max;
     measurement_laser_->range_min() = _laser.range_min;
-    measurement_laser_->resize ( _laser.ranges.size() );
+    measurement_laser_->resize ( nr );
     measurement_laser_->stamp() = _laser.header.stamp.toBoost();
-    for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
+    for ( int i = 0; i < nr; i++ ) {
         MeasurementLaser::Beam &beam = measurement_laser_->operator[] ( i );
         beam.length = _laser.ranges[i];
         beam.angle = _laser.angle_min + ( _laser.angle_increment * i );
         beam.end_point.x() = cos ( beam.angle ) * beam.length;
         beam.end_point.y() = sin ( beam.angle ) * beam.length;
     }
+    
 }
 
 /**
@@ -250,4 +257,54 @@ void SelfLocalizationNode::publishPoseEstimated () {
     for ( double &d : pose_.pose.covariance ) d = 0;
     /// publishes motion command
     pub_pose_estimated_.publish ( pose_ );
+    
+
+    // map -> odom TF:
+    tf::Stamped<tf::Pose> odom_to_map;
+    try {
+        tf::Transform tmp_tf(tf::createQuaternionFromYaw(pose_estimated_.theta()),
+                            tf::Vector3(pose_estimated_.x(),
+                                pose_estimated_.y(),
+                                0.0));
+        tf::Stamped<tf::Pose> tmp_tf_stamped (tmp_tf.inverse(),
+                                                pose_.header.stamp,
+                                                "base_link");
+        this->tf_listener_->transformPose("odom",
+                                            tmp_tf_stamped,
+                                            odom_to_map);
+    }
+    catch(tf::TransformException) {
+        ROS_DEBUG("Failed to subtract base to odom transform");
+        return;
+    }
+
+    tf::Transform latest_tf_ = tf::Transform(tf::Quaternion(odom_to_map.getRotation()),
+    tf::Point(odom_to_map.getOrigin()));
+
+    tf::StampedTransform tmp_tf_stamped(latest_tf_.inverse(),
+                                ros::Time::now(),
+                                "map", "odom");
+    static tf::TransformBroadcaster tfb;
+    tfb.sendTransform(tmp_tf_stamped);
+}
+
+/**
+ * Publishes the particles
+ **/
+void SelfLocalizationNode::publishParticles () {
+    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
+    particles_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
+    particles_.header.seq++;
+    particles_.header.frame_id = "map";
+    particles_.poses.clear();
+    particles_.poses.resize(pose_filter_->samples.size());
+    for(size_t i = 0; i< particles_.poses.size(); i++) {
+        geometry_msgs::Pose p_pose;
+        particles_.poses[i].position.x = pose_filter_->samples[i]->x();
+        particles_.poses[i].position.y = pose_filter_->samples[i]->y();
+        particles_.poses[i].position.z = 0;
+        particles_.poses[i].orientation = tf::createQuaternionMsgFromYaw ( pose_filter_->samples[i]->theta() );
+    }
+    /// publishes motion command
+    pub_particles_.publish ( particles_ );
 }
