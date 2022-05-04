@@ -1,40 +1,31 @@
-# Mobile Robotics 2022
-## 10.5.2022
-
+# Mobile Robotics Excercise 6
+### 10.5.2022
 **Allacher Alexander, Voboril Florentina, Zehetner Clemens**
 
 
-### Task 0: Not being completely incompetent with Git `[20/20]`
+TODOS:
+Change `mr_map` to `map` in self\_localisation\_node.cpp
 
 
-### Task 1: Publish the used map `[45/45]`
+## 0. Be able to use Git `[20/20]`
+Participating: Allacher, Voboril, Zehetner
+
+## 1. Publish the Map `[45/45]`
+Participating: Allacher, Voboril, Zehetner
+![](documentation_imgs/ue06_1.png|width=50%)
+
+## 2. Initialise self-localisation and trigger driving using RViz `[50/50]`
 
 
+## 3. Connect self-localisation and planner `[45/45]`
 
+## 4. Planner `[40/40]`
 
+### 4.1. New Node `[50/50]`
 
+### 4.2. Simple, no Obstacle `[50/50]`
 
+### 4.3. Avoid obstacle `[50/50]`
 
+### 4.4. Plan `[100/100]`
 
-### Task 2: Initialise self-localisation and trigger driving using RViz `[50/50]`
-
-
-
-
-### Task 3: Connect self-localisation and planner `[45/45]`
-
-
-
-### Task 4: Planner `[40/40]`
-
-#### 4.1: New Node `[50/50]`
-
-#### 4.2: Simple, no Obstacle `[50/50]`
-
-#### 4.3: Avoid Obstacle `[50/50]`
-
-#### 4.4: Plan `[100/100]`
-
-
-
-#### Task 5: Reach a goal pose by planning a path and following the path

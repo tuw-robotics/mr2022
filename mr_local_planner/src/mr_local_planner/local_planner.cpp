@@ -38,9 +38,9 @@ void LocalPlanner::init() {
      * @ToDo Wanderer
      * change the Maxima Musterfrau to your name
      **/
-    cv::putText ( figure_local_.background(), "Alexander Allacher",
-                  cv::Point ( figure_local_.view().cols-250, figure_local_.view().rows-10 ),
-                  cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
+    cv::putText(figure_local_.background(), "Group Brown",
+                cv::Point(figure_local_.view().cols - 250, figure_local_.view().rows - 10),
+                cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA);
 }
 
 
