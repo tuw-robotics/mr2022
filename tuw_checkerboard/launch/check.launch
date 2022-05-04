@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="image"                    default="/usb_cam/image_rect"/>
+  <arg name="checkerboard_columns"     default="9"/>
+  <arg name="checkerboard_rows"        default="6"/>
+  <arg name="checkerboard_square_size" default="0.024"/>
+  <arg name="rotate_camera_image_180"  default="false"/>
+  <arg name="device" default="1" />
+  <arg name="camera_cfg" default="head_camerea.yaml" />
+
+  <include file="$(find usb_cam)/launch/usb_cam-test.launch">
+      <param name="camera_info_url" value="$(find tuw_checkerboard)/launch/cv_camera/head-camera.yaml" />
+  </include>
+
+  <node name="image_proc" pkg="image_proc" type="image_proc" ns="usb_cam" />
+ 
+  <node name="tuw_checkerboard_node" pkg="tuw_checkerboard" type="tuw_checkerboard_node" output="screen">
+      <remap from="image" to="$(arg image)" />
+      <param name="checkerboard_columns" value="$(arg checkerboard_columns)" type="int" />
+      <param name="checkerboard_rows" value="$(arg checkerboard_rows)" type="int" />
+      <param name="checkerboard_square_size" value="$(arg checkerboard_square_size)" type="double" />
+  </node>
+
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find tuw_checkerboard)/launch/check.rviz"/>
+</launch>

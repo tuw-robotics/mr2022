@@ -1,0 +1,25 @@
+# http://wiki.ros.org/navigation/Tutorials/RobotSetup
+# local_costmap
+local_costmap:
+  global_frame: odom
+  robot_base_frame: base_link
+  update_frequency: 10.0
+  publish_frequency: 2.0
+  static_map: false
+  rolling_window: true
+  width: 6
+  height: 6
+  resolution: 0.02
+
+  obstacle_range: 3.5
+  raytrace_range: 4.5
+  footprint: [[0.3, 0.3], [0.3, -0.3], [-0.3, -0.3], [-0.3, 0.3]] 
+  robot_radius: 0.3
+  inflation_radius: 0.1
+  controller_frequency: 10.0
+  observation_sources: laser_scan_sensor
+
+  laser_scan_sensor: { sensor_frame: base_laser_link, data_type: LaserScan, topic: scan, marking: true, clearing: true }
+  
+
+
