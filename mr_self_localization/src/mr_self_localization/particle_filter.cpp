@@ -89,6 +89,7 @@ void ParticleFilter::initGrid () {
 }
 
 void ParticleFilter::update ( const Command &u ) {
+
     int ms = config_.forward_prediction_time * 1000;
     boost::posix_time::time_duration duration = duration_last_update_ + boost::posix_time::millisec ( ms );
     double dx, dy, dtheta, dt = duration.total_microseconds() /1000000.;
