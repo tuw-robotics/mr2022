@@ -322,10 +322,10 @@ void SelfLocalizationNode::publishMap(){
     // https://stackoverflow.com/questions/56233780/convert-an-image-into-an-occupancy-grid
     cv::Mat map_gray = cv::imread( filename_map_image_, cv::IMREAD_GRAYSCALE );
     cv::Mat map_bin;
-    cv::threshold( map_gray, map_bin, 100, 255.0, cv::THRESH_BINARY );
+    cv::threshold( map_gray, map_bin, 100, 100, cv::THRESH_BINARY );
 
-    // Empty space is represented by max value, so "invert" values and use 100 as max 
-    map_bin = 100 - ( ( map_bin / 255 ) * 100 );
+    // Empty space is represented by max value, so "invert" values
+    map_bin = 100 - map_bin;
 
     // https://stackoverflow.com/questions/26681713/convert-mat-to-array-vector-in-opencv
     // https://stackoverflow.com/questions/33665241/is-opencv-matrix-data-guaranteed-to-be-continuous
