@@ -22,6 +22,9 @@ int main ( int argc, char **argv ) {
         /// sets and publishes velocity commands
         planner.publishMotion();
 
+        /// visualition
+        planner.visualization();
+
         /// plots measurements
         planner.plot();
 
@@ -68,10 +71,14 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
      **/
     sub_goal_ = n_.subscribe("goal", 1000, &LocalPlannerNode::callbackGoal, this);
     sub_odom_ = n_.subscribe("odom", 1000, &LocalPlannerNode::callbackOdometry, this);
+    sub_path_ = n_.subscribe("waypoints", 1000, &LocalPlannerNode::callbackPath, this);
 #endif
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist> ( "cmd_vel", 1 );
+
+    /// defines a publisher for the next waypoint in pure pursuit
+    pub_waypoint_ = n.advertise<visualization_msgs::Marker> ( "next_waypoint", 1 );
 
     reconfigureFnc_ = boost::bind ( &LocalPlannerNode::callbackConfigLocalPlanner, this,  _1, _2 );
     reconfigureServer_.setCallback ( reconfigureFnc_ );
@@ -97,21 +104,6 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     **/
 #if PLANNER_EXERCISE >= 20
 #else
-    /**
-     * @node your code
-     **/
-    
-    /* Rationale: 
-     * let (range, alpha) be the measurement to a given object
-     * sensor location in robot system (x_s_r, y_s_r, theta_s_r) = (0.22, 0.00, 0.00)
-     *      sensor cartesian system: 
-     *          x_m_s = range cos(alpha) 
-     *          y_m_S = range sin(alpha)
-     *      robot cartesian system: 
-     *          x_m_r = x_s_r + x_m_s * cos(theta_s_t) - y_m_s * sin(theta_s_t)
-     *          y_m_r = y_s_r + x_m_s * sin(theta_s_r) + y_m_s * cos(theta_s_t)
-     */
-    
     measurement_laser_.range_max() = _laser.range_max;
     measurement_laser_.range_min() = _laser.range_min;
     measurement_laser_.resize (_laser.ranges.size());    
@@ -162,6 +154,18 @@ void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
     ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
 }
 
+/**
+ * copy global path poses into path_ variable
+ * @param path_msg
+ */
+void LocalPlannerNode::callbackPath(const nav_msgs::Path & path_msg) {
+    path_.clear();
+    for (geometry_msgs::PoseStamped pose : path_msg.poses){
+        Point2D p(pose.pose.position.x, pose.pose.position.y);
+        path_.push_back(p);
+    }
+    ROS_INFO_STREAM("Received path of length " << path_.size());
+}
 
 /**
  * Publishes motion commands for a robot
@@ -174,4 +178,43 @@ void LocalPlannerNode::publishMotion () {
     cmd.angular.z = cmd_.w();
     /// publishes motion command
     pub_cmd_.publish ( cmd );
+}
+
+void LocalPlannerNode::visualization(){
+    if (path_.size() > 0){
+        std::tuple<double, double, double> color = std::make_tuple(0.0, 1.0, 0.0);
+        visualizePoint(targetWaypoint_.position(), pub_waypoint_, color);
+    }
+}
+
+
+/**
+ * Publishes marker of a point
+ * @param point point in world coordinates
+ * @param pub_point ros publisher
+ * @param rgb_color color of the marker
+ */
+void LocalPlannerNode::visualizePoint(Point2D point, ros::Publisher pub_point, std::tuple<double, double, double> rgb_color) {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "map";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "marker";
+    marker.id = 1;
+    marker.type = visualization_msgs::Marker::CUBE;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = point.x();
+    marker.pose.position.y = point.y();
+    marker.pose.position.z = 0;
+    marker.pose.orientation.x = 0.0;
+    marker.pose.orientation.y = 0.0;
+    marker.pose.orientation.z = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.3;
+    marker.scale.y = 0.3;
+    marker.scale.z = 0.3;
+    marker.color.a = 1.0; // Don't forget to set the alpha!
+    marker.color.r = std::get<0>(rgb_color);
+    marker.color.g = std::get<1>(rgb_color);
+    marker.color.b = std::get<2>(rgb_color);
+    pub_point.publish(marker);
 }

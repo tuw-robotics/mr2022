@@ -31,7 +31,15 @@
     </node>
 
     <node pkg="mr_local_planner" type="global_planner_mock.py" name="global_planner" output="screen" />
-
+    <!--
+    <node pkg="mr_local_planner" type="mr_local_planner_node" name="local_planner" output="screen">
+        <param name="mode" value="7" />
+        <param name="plot_data" value="false" />
+        <remap from="scan" to="base_scan" />
+        <remap from="cmd_vel" to="cmd_vel" />
+        <remap from="odom" to="odom" />
+    </node>
+	    -->
 </launch>
 
 

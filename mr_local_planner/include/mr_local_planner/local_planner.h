@@ -21,7 +21,9 @@ public:
         WANDERER2 = 3,
         BUG1 = 4,
         BUG2 = 5,
-        TANGENSBUG = 6
+        TANGENSBUG = 6,
+        GOTO = 7
+
     };
     enum ActionState {
         NA   = 0,    /// init
@@ -53,6 +55,8 @@ protected:
     Pose2D goal_;  /// goal pose in world coordinates
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
+    std::vector<Point2D> path_;  /// path as sequence of points
+    Pose2D targetWaypoint_;   /// goal waypoint (pure pursuit) in world coordinates
     ActionState action_state_;  /// current action state
 
     MeasurementLaser measurement_laser_;    /// laser measurements
@@ -65,6 +69,7 @@ protected:
     void bug1();            /// Bug1 behavior
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
+    void pure_pursuit();    /// Pure Pursuit
     void plotLocal();       /// plots sensor input in robot coordinates
     
     // Wanderer

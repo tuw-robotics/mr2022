@@ -13,9 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   nav_msgs
+  visualization_msgs
   tf
   mr_geometry
-  dynamic_reconfigure 
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -146,8 +147,8 @@ add_executable(mr_local_planner_node src/local_planner_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(mr_local_planner_node 
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+add_dependencies(mr_local_planner_node
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_gencfg)
 
