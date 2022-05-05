@@ -44,6 +44,7 @@
   <run_depend>mr_local_planner</run_depend>
   <run_depend>mr_self_localization</run_depend>
   <run_depend>mr_launch</run_depend>
+  <run_depend>mr_goto</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
