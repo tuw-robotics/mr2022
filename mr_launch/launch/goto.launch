@@ -29,6 +29,9 @@
         <param name="map_image" value="$(find mr_self_localization)/maps/line.png" />
         <param name="map_lines" value="$(find mr_self_localization)/maps/line.yml" />
     </node>
+
+    <node pkg="mr_local_planner" type="global_planner_mock.py" name="global_planner" output="screen" />
+
 </launch>
 
 
