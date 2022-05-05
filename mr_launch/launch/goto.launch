@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Map server just as reference -->
-    <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/line/line.yaml">
+    <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/line/line.yaml"> -->
         <!-- <remap from="map" to="map_ref" /> -->
-    </node>
+    <!-- </node> -->
 
     <!-- RViz with configuration to show useful topics -->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_launch)/rviz/goto1.rviz" />  

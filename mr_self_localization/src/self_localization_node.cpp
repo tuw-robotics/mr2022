@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
 #include <boost/filesystem.hpp>
+#include <nav_msgs/OccupancyGrid.h>
 
 using namespace moro;
 
@@ -14,6 +15,8 @@ int main ( int argc, char **argv ) {
     self_localization.init();
     ros::Rate rate ( 10 );
 
+    int pub_map_cnt = 0;
+
     while ( ros::ok() ) {
 
         /// localization
@@ -21,6 +24,11 @@ int main ( int argc, char **argv ) {
 
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
+
+        if ( pub_map_cnt == 10 ){
+            self_localization.publishMap();
+            pub_map_cnt = 0;
+        }
 
         /// plots measurements
         self_localization.plot();
@@ -86,7 +94,9 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
     sub_ground_truth_ = n.subscribe ( "base_pose_ground_truth", 1, &SelfLocalizationNode::callbackGroundTruth, this );
 
     /// defines a publisher for the resulting pose
-    pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );    
+    pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );   
+
+    pub_map_ = n.advertise<nav_msgs::OccupancyGrid> ( "map", 1 ); 
 
     pose_.header.seq = 0;
 
@@ -277,4 +287,49 @@ void SelfLocalizationNode::publishPoseEstimated () {
         ROS_DEBUG("Failed to subtract base to odom transform");
         return;
     }
+}
+
+/**
+ * Publishes the map
+ **/
+void SelfLocalizationNode::publishMap(){
+    
+    nav_msgs::OccupancyGrid map_msg;
+
+    // Header
+    auto stamp = ros::Time::now();
+    static size_t seq = 0;
+    map_msg.header.stamp = stamp;
+    map_msg.header.frame_id = "map";
+    map_msg.header.seq = seq++;
+
+    // Metadata
+    map_msg.info.map_load_time = stamp;
+    map_msg.info.width = figure_map_.width();
+    map_msg.info.height = figure_map_.height();
+    // scale_dim = pixel_dim / dim -> resolution = 1 / scale
+    map_msg.info.resolution = 1 / figure_map_.scale_x();
+
+    // width/height are for pixels -> divide by scale
+    // y origin not negative because of rotation around x axis
+    map_msg.info.origin.position.x = -( figure_map_.width() / 2 ) / figure_map_.scale_x();
+    map_msg.info.origin.position.y = ( figure_map_.height() / 2 ) / figure_map_.scale_y();
+    map_msg.info.origin.orientation.x = 1;
+
+    // Map data
+    // https://stackoverflow.com/questions/56233780/convert-an-image-into-an-occupancy-grid
+    cv::Mat map_gray = cv::imread( filename_map_image_, cv::IMREAD_GRAYSCALE );
+    cv::Mat map_bin;
+    cv::threshold( map_gray, map_bin, 100, 255.0, cv::THRESH_BINARY );
+
+    // Empty space is represented by max value, so "invert" values and use 100 as max 
+    map_bin = 100 - ( ( map_bin / 255 ) * 100 );
+
+    // https://stackoverflow.com/questions/26681713/convert-mat-to-array-vector-in-opencv
+    // https://stackoverflow.com/questions/33665241/is-opencv-matrix-data-guaranteed-to-be-continuous
+    cv::Mat map_flat = map_bin.reshape( 1, map_bin.total() );
+    std::vector<int8_t> map_vec = map_flat.isContinuous() ? map_flat : map_flat.clone();
+    map_msg.data = map_vec;
+    
+    pub_map_.publish( map_msg );
 }
