@@ -29,6 +29,8 @@ int main ( int argc, char **argv ) {
             self_localization.publishMap();
             pub_map_cnt = 0;
         }
+        
+        pub_map_cnt++;
 
         /// plots measurements
         self_localization.plot();
