@@ -82,6 +82,11 @@ void SelfLocalization::init() {
                             config_.map_min_x, config_.map_max_x,
                             config_.map_min_y, config_.map_max_y,
                             config_.map_rotation + M_PI, filename_map );
+
+    pose_filter_->loadMapToPublish(config_.map_pix_x, config_.map_pix_y,
+                                   config_.map_min_x, config_.map_max_x,
+                                   config_.map_min_y, config_.map_max_y,
+                                   config_.map_rotation + M_PI, filename_map_image_);
 }
 
 

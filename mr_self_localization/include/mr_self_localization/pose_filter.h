@@ -5,6 +5,7 @@
 #include <mr_geometry/geometry.h>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <mr_self_localization/sample.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 namespace moro {
 
@@ -88,6 +89,11 @@ public:
      * @return estimated pose at the time of the measurement
      **/
     virtual Pose2D localization ( const Command &u, const MeasurementConstPtr &z ) = 0;
+
+    void loadMapToPublish ( int width_pixel, int height_pixel, double min_x, double max_x, double min_y, double max_y, double roation, const std::string &file );
+
+    const nav_msgs::OccupancyGrid& get_map_msg_to_publish() const;
+
 protected:
     /**
      * Inits the system
@@ -105,7 +111,8 @@ protected:
     Pose2D pose_estimated_;  /// computed estimated pose
     boost::posix_time::ptime timestamp_last_update_;  /// time of the last processed measurement
     boost::posix_time::time_duration duration_last_update_;  /// time since the previous processed measurement
-private:  
+    nav_msgs::OccupancyGrid map_msg_to_publish;
+private:
     Type type_;
 };
 };
