@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
     <!-- Map server just as reference -->
     <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/line/line.yaml">
@@ -9,6 +10,25 @@
     
     <!-- rqt_plot showing current forward velocity (/odom/twist/twist/linear/x) and rotational velocity (/odom/twist/twist/angular/z) -->
     <!-- <node name="pos_vel_plot" pkg="rqt_plot" type="rqt_plot" args="/odom/twist/twist/linear/x /odom/twist/twist/angular/z" /> -->
+
+    <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization">
+        <remap from="scan" to="base_scan" />
+        <!--remap from="cmd" to="cmd_vel" /-->
+        <param name="scan" value="base_scan" />
+        <param name="mode" value="0" />
+        <param name="plot_data" value="true" />
+        <param name="reinitialize" value="true" />
+        <param name="initial_with_ground_truth" value="true" />
+        <param name="nr_of_samples" value="1000" />
+        <param name="particle_filter/enable_update" value="true" />
+        <param name="particle_filter/enable_resample" value="true" />
+        <param name="particle_filter/enable_weighting" value="true" />
+        <param name="particle_filter/initial_distribution" value="0" />
+        <param name="particle_filter/sigma_init_position" value="0.05" />
+        <param name="particle_filter/sigma_init_orientation" value="0.01" />
+        <param name="map_image" value="$(find mr_self_localization)/maps/line.png" />
+        <param name="map_lines" value="$(find mr_self_localization)/maps/line.yml" />
+    </node>
 </launch>
 
 
