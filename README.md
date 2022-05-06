@@ -43,24 +43,29 @@ TODO: listen to the tf in your planner.
 
 ### 4.0.1 Your planner is using your self-localization (20 Points)
 
+* By: Erik Lundell
 TODO
 
 ### 4.0.2 Your planner can be operated with Rviz (20 Points)
 
+* By: Erik Lundell
 TODO
 
 ## 4.1 New Node (50 Points)
 
+* By: Erik Lundell
 TODO
 
 ## 4.2 Simple, no Obstacle
 
 ### 4.2.1 Your vehicle can drive to a goal location and stops there. (25 Points)
 
+* By: Erik Lundell
 TODO
 
 ### 4.2.2 Your vehicle can drive to a goal location, stops there and turns into the correct pose. (25 Points)
 
+* By: Erik Lundell
 TODO
 
 ## 4.3 Avoid obstacle
