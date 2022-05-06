@@ -15,7 +15,10 @@ Participating: Allacher, Voboril, Zehetner
 ![](documentation_imgs/ue06_1.png|width=50%)
 
 ## 2. Initialise self-localisation and trigger driving using RViz `[50/50]`
+Participating: Allacher, Voboril, Zehetner
+![](documentation_imgs/ue06_2.png|width=50%)
 
+We can view messages in the console. To also see the debug messages, we have to change the level to debug in the configuration.
 
 ## 3. Connect self-localisation and planner `[45/45]`
 
