@@ -15,16 +15,16 @@ int main(int argc, char **argv) {
 }
 
 GlobalPlannerNode::GlobalPlannerNode(ros::NodeHandle &n)
-    : GlobalPlanner(), n_(n)
+    : GlobalPlanner(), n_(n), tf_buffer_(), tf_listener_(tf_buffer_)
 {
-    this->sub_map_ = n.subscribe("map", 1, &GlobalPlannerNode::callbackMap, this);
-    this->sub_goal_ = n.subscribe("move_base_simple/goal", 1, &GlobalPlannerNode::callbackGoal, this);
+    this->sub_map_ = n.subscribe("map", 1, &GlobalPlannerNode::callback_map, this);
+    this->sub_goal_ = n.subscribe("move_base_simple/goal", 1, &GlobalPlannerNode::callback_goal, this);
 
     this->pub_path_ = n.advertise<nav_msgs::Path>("global_planner/path", 1);
     this->pub_costmap_ = n.advertise<nav_msgs::OccupancyGrid>("global_planner/costmap", 1);
 }
 
-void GlobalPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &occupancyGrid) {
+void GlobalPlannerNode::callback_map(const nav_msgs::OccupancyGrid &occupancyGrid) {
     this->map_height = occupancyGrid.info.height;
     this->map_width = occupancyGrid.info.width;
     this->map_resolution_ = occupancyGrid.info.resolution;
@@ -39,14 +39,29 @@ void GlobalPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &occupancyGrid
     }
 }
 
-void GlobalPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal) {
-    // Transform input coordinates into map / cell coordinates.
-    this->start.x = 100;
-    this->start.y = 100;
-    this->goal.x = 400;
-    this->goal.y = 400;
+void GlobalPlannerNode::callback_goal(const geometry_msgs::PoseStamped &target) {
+    // Get & Set start position
+    // TODO: Handle Timeout
+    geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link", ros::Time::now(), ros::Duration(3.0));
 
-    // Plant
+    auto t1 = this->map_to_img({start_tf.transform.translation.x, start_tf.transform.translation.y});
+
+    std::cout << "tf: " << start_tf.transform.translation.x << ":" << start_tf.transform.translation.y << std::endl;
+
+    this->start.x = t1.first;
+    this->start.y = t1.second;
+
+    // Transform input coordinates into map / cell coordinates.
+    auto t2 = this->map_to_img({target.pose.position.x, target.pose.position.y});
+
+    this->goal.x = t2.first;
+    this->goal.y = t2.second;
+
+    std::cout << "Start: " << this->start.x << ":" << this->start.y << std::endl;
+    std::cout << "Target: " << this->goal.x  << ":" << this->goal.y << std::endl;
+
+
+    // Plan
     this->plan();
 
     this->publish_costmap();
@@ -111,11 +126,27 @@ void GlobalPlannerNode::publish_path() {
         p.header.frame_id = "map";
         p.header.stamp = ros::Time::now();
 
-        p.pose.position.x = c.x * this->map_resolution_ + this->map_origin_.position.x;
-        p.pose.position.y = c.y * this->map_resolution_ + this->map_origin_.position.y;
+        auto t = this->img_to_map({c.x, c.y});
+
+        p.pose.position.x = t.first;
+        p.pose.position.y = t.second;
 
         path_msg.poses.push_back(p);
     }
 
     this->pub_path_.publish(path_msg);
+}
+
+std::pair<size_t, size_t> GlobalPlannerNode::map_to_img(std::pair<double, double> p) {
+    return {
+            (p.first - this->map_origin_.position.x) / this->map_resolution_,
+            (p.second - this->map_origin_.position.y) /  this->map_resolution_
+    };
+}
+
+std::pair<double, double> GlobalPlannerNode::img_to_map(std::pair<size_t, size_t> p) {
+    return {
+            p.first * this->map_resolution_ + this->map_origin_.position.x,
+            p.second * this->map_resolution_ + this->map_origin_.position.y
+    };
 }

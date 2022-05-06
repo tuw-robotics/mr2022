@@ -58,7 +58,7 @@
   <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
-+  <run_depend>tf2_ros</run_depend>
+  <run_depend>tf2_ros</run_depend>
   <run_depend>tf2_geometry_msgs</run_depend>
   <run_depend>mr_geometry</run_depend>  
   <run_depend>dynamic_reconfigure</run_depend>
