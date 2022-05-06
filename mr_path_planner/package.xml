@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>mr_goto</name>
+  <name>mr_path_planner</name>
   <version>0.0.0</version>
-  <description>The mr_goto package</description>
+  <description>The mr_path_planner package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

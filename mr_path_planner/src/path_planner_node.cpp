@@ -1,4 +1,4 @@
-#include "goto_node.h"
+#include "path_planner_node.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
@@ -14,16 +14,16 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, "goto");
     ros::NodeHandle n;
-    GotoNode goto_node(n);
-    goto_node.init();
+    PathPlannerNode path_planner(n);
+    path_planner.init();
     ros::Rate rate(1);
 
     while (ros::ok())
     {
 
-        goto_node.updatePoseEstimate();
+        path_planner.updatePoseEstimate();
 
-        goto_node.findPath();
+        path_planner.findPath();
         // /// localization
         // self_localization.localization();
 
@@ -44,28 +44,28 @@ int main(int argc, char **argv)
     return 0;
 }
 
-GotoNode::GotoNode(ros::NodeHandle &n) : n_(n), n_param_("~")
+PathPlannerNode::PathPlannerNode(ros::NodeHandle &n) : n_(n), n_param_("~")
 {
     tf_listener_ = std::make_shared<tf::TransformListener>();
-    sub_map_ = n.subscribe("map", 1, &GotoNode::callbackMap, this);
-    sub_goal_ = n.subscribe("move_base_simple/goal", 1, &GotoNode::callbackGoal, this);
-    sub_pose_estimated_ = n.subscribe("pose_estimated", 1, &GotoNode::callbackPoseEstimated, this);
+    sub_map_ = n.subscribe("map", 1, &PathPlannerNode::callbackMap, this);
+    sub_goal_ = n.subscribe("move_base_simple/goal", 1, &PathPlannerNode::callbackGoal, this);
+    sub_pose_estimated_ = n.subscribe("pose_estimated", 1, &PathPlannerNode::callbackPoseEstimated, this);
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     pub_path_ = n.advertise<nav_msgs::Path>("nav_path", 1);
 }
 
-void GotoNode::init() {
+void PathPlannerNode::init() {
     
 }
 
-void GotoNode::callbackMap(const nav_msgs::OccupancyGrid &map)
+void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
 {
     ROS_INFO("callbackMap!");
     map_ = map;
     astar_map_ = std::make_shared<Map>(map_.data, map_.info, 80);
 }
 
-void GotoNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
+void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
 {
     ROS_INFO("callbackGoal!");
     tf::Quaternion q;
@@ -77,7 +77,7 @@ void GotoNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
     ROS_INFO("(%f,%f,%f)", goal_.get_x(), goal_.get_y(), goal_.get_theta());
 }
 
-void GotoNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &poseEstimated)
+void PathPlannerNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &poseEstimated)
 {
     ROS_INFO("callbackPoseEstimated!");
     tf::Quaternion q;
@@ -88,7 +88,7 @@ void GotoNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStam
     ROS_INFO("(%f,%f,%f)", pose_estimated_.get_x(), pose_estimated_.get_y(), pose_estimated_.get_theta());
 }
 
-void GotoNode::findPath() {
+void PathPlannerNode::findPath() {
     if(goal_set_) {
         std::shared_ptr<micropather::MicroPather> pather = std::make_shared<micropather::MicroPather>(astar_map_.get());
         micropather::MPVector< void* > path;
@@ -120,7 +120,7 @@ void GotoNode::findPath() {
     }
 }
 
-void GotoNode::updatePoseEstimate()
+void PathPlannerNode::updatePoseEstimate()
 {
     // tf::StampedTransform transform;
     // try

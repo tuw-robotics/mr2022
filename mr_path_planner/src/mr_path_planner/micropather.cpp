@@ -41,7 +41,7 @@ distribution.
 #include "../grinliz/gldebug.h"
 #endif
 
-#include "mr_goto/micropather.h"
+#include "mr_path_planner/micropather.h"
 
 using namespace micropather;
 

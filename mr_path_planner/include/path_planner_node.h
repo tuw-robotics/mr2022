@@ -13,8 +13,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <mr_geometry/geometry.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include "mr_goto/map.h"
-#include "mr_goto/micropather.h"
+#include "mr_path_planner/map.h"
+#include "mr_path_planner/micropather.h"
 #include "nav_msgs/Path.h"
 
 namespace moro
@@ -22,10 +22,10 @@ namespace moro
     /**
  * class to cover the ros communication for the self-localization
  **/
-    class GotoNode
+    class PathPlannerNode
     {
     public:
-        GotoNode(ros::NodeHandle &n); /// Constructor
+        PathPlannerNode(ros::NodeHandle &n); /// Constructor
         void init();                  /// initialization
         void updatePoseEstimate();
         void findPath();
