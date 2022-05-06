@@ -15,6 +15,7 @@
 #include <mr_self_localization/KalmanFilterConfig.h>
 #include <mr_self_localization/SelfLocalizationConfig.h>
 #include <mr_self_localization/self_localization.h>
+
 /**
  * class to cover the ros communication for the self-localization
  **/
@@ -24,6 +25,7 @@ public:
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
     void publishParticles ();
+    void publishMap ();
 private:
     ros::NodeHandle n_;             /// node handler to the root node
     ros::NodeHandle n_param_;       /// node handler to the current node
@@ -34,6 +36,7 @@ private:
     ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
     ros::Publisher pub_particles_; /// publisher for the particles
+    ros::Publisher pub_map_; /// publisher for the map
     std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
     geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
     geometry_msgs::PoseArray particles_;

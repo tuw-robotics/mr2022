@@ -15,6 +15,8 @@ int main ( int argc, char **argv ) {
     self_localization.init();
     ros::Rate rate ( 10 );
 
+    int cnt = 1;
+
     while ( ros::ok() ) {
 
         /// localization
@@ -24,6 +26,14 @@ int main ( int argc, char **argv ) {
         self_localization.publishPoseEstimated();
         /// publishes the particles
         self_localization.publishParticles();
+
+        /// publishes the map every second
+        if (cnt == 10) {
+            self_localization.publishMap();
+            cnt = 1;
+        } else {
+            cnt++;
+        }
 
         /// plots measurements
         self_localization.plot();
@@ -93,6 +103,9 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
     
     /// defines a publisher for the resulting particles
     pub_particles_ = n.advertise<geometry_msgs::PoseArray> ( "particles", 1 );
+
+    /// defines a publisher for the map
+    pub_map_ = n.advertise<nav_msgs::OccupancyGrid> ( "map", 1 );
 
     pose_.header.seq = 0;
 
@@ -307,4 +320,17 @@ void SelfLocalizationNode::publishParticles () {
     }
     /// publishes motion command
     pub_particles_.publish ( particles_ );
+}
+
+/**
+ * Publishes the particles
+ **/
+void SelfLocalizationNode::publishMap () {
+    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
+    auto map_msg_to_publish = pose_filter_->get_map_msg_to_publish();
+    map_msg_to_publish.header.stamp.fromBoost ( pose_filter_->time_last_update() );
+    map_msg_to_publish.header.seq++;
+    map_msg_to_publish.info.map_load_time = ros::Time::now();
+
+    pub_map_.publish ( map_msg_to_publish );
 }

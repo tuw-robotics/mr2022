@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="world" default="cave.world" />
+  <arg name="stage" default="false" />
+  <arg name="mode" default="0" />
+  <arg name="plot_data" default="true" />
+  <group if="$(arg stage)">
+    <include file="$(find stage_ros)/launch/world.launch">
+      <arg name="world" default="$(arg world)" />
+    </include>
+  </group>
+  <node pkg="mr_goto" type="mr_goto_node" name="goto" output="screen">
+      <param name="mode" value="$(arg mode)" />
+      <param name="plot_data" value="$(arg plot_data)" />
+      <remap from="scan" to="base_scan" />
+      <remap from="cmd_vel" to="cmd_vel" />
+      <remap from="odom" to="odom" />
+  </node>
+</launch>
