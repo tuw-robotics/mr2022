@@ -69,7 +69,7 @@ protected:
     void bug1();            /// Bug1 behavior
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
-    void pure_pursuit();    /// Pure Pursuit
+    void path_tracking();    /// geometric path tracking algorithm
     void plotLocal();       /// plots sensor input in robot coordinates
     
     // Wanderer

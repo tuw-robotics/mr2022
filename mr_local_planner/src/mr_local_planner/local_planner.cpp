@@ -108,7 +108,7 @@ void LocalPlanner::ai() {
             tangensbug();
             break;
         case GOTO:
-            pure_pursuit();
+            path_tracking();
             break;
         default:
             cmd_.set(0, 0);
@@ -320,42 +320,56 @@ void LocalPlanner::tangensbug() {
     **/
 }
 
-void LocalPlanner::pure_pursuit() {
+void LocalPlanner::path_tracking() {
     /**
-     * Pure Pursuit algorithm.
-     * use path_, odom_
+     * Geometric algorithm to track path: control steer and speed w.r.t. the closest waypoint > lookahead distance.
+     * Simple proportional control, no fancy steering (e.g., pure pursuit).
      *
-     * reference: https://www.ri.cmu.edu/pub_files/pub3/coulter_r_craig_1992_1/coulter_r_craig_1992_1.pdf
+     * use path_, odom_
      */
-     if (path_.size() == 0) return;
-     // parameters
-     double lookahead = 1.0, wheelbase = 0.1;
+    // parameters
+    double lookahead = 1.0, maxsteer = 0.5, maxspeed = 0.8;
+    /// wait to have a path
+    if (path_.size() == 0) return;
+
     // find closest waypoint
     int closestID = -1;
     double minDist = 100;
     Point2D position = odom_.position();
     double theta = odom_.theta();
-    for (size_t i=0; i<path_.size(); i++) {
+    for (size_t i = 0; i < path_.size(); i++) {
         Point2D waypoint = path_[i];
         double dist = position.distanceTo(waypoint);
-        if ( dist < minDist){
+        if (dist < minDist) {
             minDist = dist;
             closestID = i;
         }
     }
-    // find waypoint which is lookahead distance from closest one
-    while ( minDist < lookahead && closestID < path_.size() - 1){
+    // find waypoint which is > lookahead distance from closest one
+    while (minDist < lookahead && closestID < path_.size() - 1) {
         Point2D current = path_[closestID];
         Point2D next = path_[closestID + 1];
         minDist += current.distanceTo(next);
         closestID++;
     }
-    targetWaypoint_ = path_[closestID];
-    auto target_robot = odom_.tf() * targetWaypoint_.position();
+    // transform selected target to robot frame
+    targetWaypoint_ = path_[closestID];     // used in visualization
+    auto target_robot = odom_.tf().inv() * targetWaypoint_.position();
 
-    // compute controls
-    double radius = pow(lookahead, 2) / (2 * target_robot.y());
-    double speed = 0.5;
-    double steer = atan(wheelbase * 1 / radius);
+    // compute lateral control
+    double steer = atan2(target_robot.y(), target_robot.x());
+
+    // compute longitudinal control
+    double speed = 0;
+    double dist = sqrt(pow(target_robot.x(), 2) + pow(target_robot.y(), 2));
+    double normDist = min(dist, lookahead) / lookahead;
+    if (dist > lookahead) {
+        // speed proportional to target and inv. prop to steering
+        double normSteer = min(fabs(steer), maxsteer) / maxsteer;
+        speed = maxspeed * (normDist + (1 - normSteer)) / 2;
+    } else {
+        // lower speed proportional to target
+        speed = maxspeed / 2 * normDist;
+    }
     cmd_.set(speed, steer);
 }
