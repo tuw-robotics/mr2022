@@ -31,7 +31,7 @@ namespace moro {
         if(options.blur_iterations > 0) {
             for(int b = 0; b < options.blur_iterations; b++) {
                 cv::Mat blurred_image_intermediary;
-                cv::GaussianBlur(blurred_image, blurred_image_intermediary, cv::Size(11,11), 0);
+                cv::GaussianBlur(blurred_image, blurred_image_intermediary, cv::Size(options.blur_size,options.blur_size), 0);
                 blurred_image = blurred_image_intermediary;
             }
         }

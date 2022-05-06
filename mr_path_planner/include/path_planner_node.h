@@ -16,6 +16,7 @@
 #include "mr_path_planner/map.h"
 #include "mr_path_planner/micropather.h"
 #include "nav_msgs/Path.h"
+#include <mr_path_planner/PathPlannerConfig.h>
 
 namespace moro
 {
@@ -44,6 +45,7 @@ namespace moro
 
         nav_msgs::OccupancyGrid map_;
         std::shared_ptr<Map> astar_map_;
+        std::shared_ptr<micropather::MicroPather> micropather_;
         Pose2D goal_;
         bool goal_set_ = false;
         Pose2D pose_estimated_;
@@ -52,6 +54,12 @@ namespace moro
         void callbackMap(const nav_msgs::OccupancyGrid &);     /// callback function to catch the map
         void callbackGoal(const geometry_msgs::PoseStamped &); /// callback function to catch goal updates
         void callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &); /// callback function to catch goal updates
+
+
+        mr_path_planner::PathPlannerConfig config_;
+        void callbackConfigPathPlanner ( mr_path_planner::PathPlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes
+        dynamic_reconfigure::Server<mr_path_planner::PathPlannerConfig> reconfigureServer_; /// parameter server stuff
+        dynamic_reconfigure::Server<mr_path_planner::PathPlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
     };
 }
 

@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     PathPlannerNode path_planner(n);
     path_planner.init();
-    ros::Rate rate(1);
+    ros::Rate rate(10);
 
     while (ros::ok())
     {
@@ -52,10 +52,22 @@ PathPlannerNode::PathPlannerNode(ros::NodeHandle &n) : n_(n), n_param_("~")
     sub_pose_estimated_ = n.subscribe("pose_estimated", 1, &PathPlannerNode::callbackPoseEstimated, this);
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     pub_path_ = n.advertise<nav_msgs::Path>("nav_path", 1);
+
+    reconfigureFnc_ = boost::bind ( &PathPlannerNode::callbackConfigPathPlanner, this,  _1, _2 );
+    reconfigureServer_.setCallback ( reconfigureFnc_ );
+}
+
+
+void PathPlannerNode::callbackConfigPathPlanner ( mr_path_planner::PathPlannerConfig &config, uint32_t level ) {
+    ROS_INFO ( "callbackConfigPathPlanner!" );
+    config_ = config;
+    init();
 }
 
 void PathPlannerNode::init() {
-    
+    if(astar_map_ != nullptr) {
+        callbackMap(map_);
+    }
 }
 
 void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
@@ -63,12 +75,14 @@ void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
     ROS_INFO("callbackMap!");
     map_ = map;
     MapOptions options_ = {
-        2, // scale
-        10, // blur iterations
-        true, // diagonal paths
-        200 // occupancy threshold (0-255)
+        config_.map_scale, // scale
+        config_.map_blur_iter, // blur iterations
+        config_.map_blur_size, // blur filter size
+        config_.diagonal_move, // diagonal paths
+        config_.occupancy_thres // occupancy threshold (0-255)
     };
     astar_map_ = std::make_shared<Map>(map_, options_);
+    micropather_ = std::make_shared<micropather::MicroPather>(astar_map_.get());
 }
 
 void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
@@ -96,12 +110,11 @@ void PathPlannerNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovaria
 
 void PathPlannerNode::findPath() {
     if(goal_set_) {
-        std::shared_ptr<micropather::MicroPather> pather = std::make_shared<micropather::MicroPather>(astar_map_.get());
         micropather::MPVector< void* > path;
         float totalCost = 0;
         void* startState = astar_map_->worldToNode(pose_estimated_);
         void* endState = astar_map_->worldToNode(goal_);
-        int result = pather->Solve( startState, endState, &path, &totalCost );
+        int result = micropather_->Solve( startState, endState, &path, &totalCost );
 
         path_.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
         path_.header.seq++;

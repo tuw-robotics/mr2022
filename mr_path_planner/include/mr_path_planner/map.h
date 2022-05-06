@@ -10,6 +10,7 @@ namespace moro {
     struct MapOptions {
         int scale_factor;
         uint8_t blur_iterations;
+        uint8_t blur_size;
         bool allow_diagonal_movement;
         uint8_t occupancy_threshold;
     };
