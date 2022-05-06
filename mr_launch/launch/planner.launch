@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="mr_planner" type="mr_planner_node" name="mr_planner_node" output="log">  
+  </node>
+  
+</launch>

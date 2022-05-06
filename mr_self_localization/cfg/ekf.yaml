@@ -1,7 +1,7 @@
 mode: 1
 reinitialize: false
 initial_with_ground_truth: true
-plot_data: true
+plot_data: false
 
 kalman_filter:
   forward_prediction_time: 0
