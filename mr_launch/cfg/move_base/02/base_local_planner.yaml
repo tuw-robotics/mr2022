@@ -1,28 +1,30 @@
-controller_frequency: 4.0
+controller_frequency: 10.0
+recovery_behaviour_enabled: true
+clearing_rotation_allowed: false
+
+# Changes:
+# lower max. trans. and rot. velocities
+# max_vel_x: 0.5
+# max_vel_theta: 0.1
 
 TrajectoryPlannerROS:
 # Robot Configuration Parameters
-  acc_lim_x: 2.5 
+  acc_lim_x: 0.5
   # The x acceleration limit of the robot in meters/sec^2. default: 2.5 
   acc_lim_y: 2.5 
   # The y acceleration limit of the robot in meters/sec^2.  default: 2.5
   acc_lim_th: 3.2
   # The rotational acceleration limit of the robot in radians/sec^2. default: 3.2
-  max_vel_x: 2.5
+  max_vel_x: 0.5
   # The maximum forward velocity allowed for the base in meters/sec. default: 0.5
   min_vel_x: 0.1
   # The minimum forward velocity allowed for the base in meters/sec. 
   # It is useful to specify this to guarantee that velocity commands sent 
   # to a mobile base are high enough to allow the base to overcome friction. default: 0.1
-  max_rotational_vel: 1.0
-  # The maximum rotational velocity allowed for the base in radians/sec.  default: 1.0
+  #max_rotational_vel: 0.2
+  max_vel_theta: 0.1
   min_in_place_rotational_vel: 0.4
-  # The minimum rotational velocity allowed for the base while performing in-place rotations in radians/sec. default: 0.4
   escape_vel: -0.1
-  # Speed used for driving during escapes in meters/sec. Note that it 
-  # must be negative in order for the robot to actually reverse. 
-  # A positive speed will cause the robot to move forward while attempting to escape. default: -0.1
-
   holonomic_robot: false
 
 # Goal Tolerance Parameters
@@ -35,13 +37,13 @@ TrajectoryPlannerROS:
   # it will simply rotate in place, even if it ends up outside the goal tolerance while it is doing so. default: false
 
 # Forward Simulation Parameters
-  sim_time: 2.0
+  sim_time: 1.0
   # The amount of time to forward-simulate trajectories in seconds. defaut 1.0
   sim_granularity: 0.025
   # The step size, in meters, to take between points on a given trajectory. default: 0.025
   angular_sim_granularity: 0.025
   # The step size, in radians, to take between angular samples on a given trajectory default: /sim_granularity
-  vx_samples: 5
+  vx_samples: 10
   # The number of samples to use when exploring the x velocity space. default: 2
   vtheta_samples: 20
   # The number of samples to use when exploring the theta velocity space. default: 20
@@ -55,7 +57,7 @@ TrajectoryPlannerROS:
   meter_scoring: true
   # Whether the gdist_scale and pdist_scale parameters should assume that goal_distance 
   # and path_distance are expressed in units of meters or cells. Cells are assumed by default. default: false
-  pdist_scale: 0.4
+  pdist_scale: 0.8
   # The weighting for how much the controller should stay close to the path it was given. default: 0.6
   gdist_scale: 0.8
   # The weighting for how much the controller should attempt to reach its local goal, also controls speed. default: 0.8

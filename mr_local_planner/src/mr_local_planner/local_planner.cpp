@@ -38,7 +38,7 @@ void LocalPlanner::init() {
      * @ToDo Wanderer
      * change the Maxima Musterfrau to your name
      **/
-    cv::putText ( figure_local_.background(), "Maxima Musterfrau",
+    cv::putText ( figure_local_.background(), "Team Khaki",
                   cv::Point ( figure_local_.view().cols-250, figure_local_.view().rows-10 ),
                   cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 }
@@ -61,9 +61,13 @@ void LocalPlanner::plotLocal() {
     /**
      * @node your code
      **/
-    figure_local_.symbol ( Point2D ( 1,2 ), Figure::red ); /// Demo remove afterwards
-    figure_local_.circle ( Point2D ( 2,2 ), 2, Figure::green, 2 ); /// Demo remove afterwards
+    // figure_local_.symbol ( Point2D ( 1,2 ), Figure::red ); /// Demo remove afterwards
+    // figure_local_.circle ( Point2D ( 2,2 ), 2, Figure::green, 2 ); /// Demo remove afterwards
     // for in measurement_laser_ {}
+    for ( size_t i = 0; i < measurement_laser_.size(); i++ ) {
+        figure_local_.symbol ( measurement_laser_[i].end_point , Figure::red ); 
+        figure_local_.circle ( measurement_laser_[i].end_point , 2, Figure::green, 2 ); 
+    }
 #endif
 
     /**
@@ -137,12 +141,35 @@ void LocalPlanner::wanderer1() {
     * write one or two wanderer behaviors to keep the robot at least 120sec driving without a crash by exploring as much as possible.
     * I know it sounds weird but don't get too fancy.
     **/
+    static int changeDir = 1;
+    double v = 0.5, w = 0.0;
+    if ( measurement_laser_.empty() ) {
+        v = 0.0, w = 0;
+    } else {
+        for (size_t i = measurement_laser_.size()*0.4; i < measurement_laser_.size()*0.6; i++ ) {
+            if(measurement_laser_[i].length < measurement_laser_.range_max()/4){
+                v = 0;
+                w = changeDir*0.3;
+            }
+        }
+        for (size_t i = 0; i < measurement_laser_.size(); i++ ) {
+            if(measurement_laser_[i].length < measurement_laser_.range_max()/8){
+                v = 0;
+                w = changeDir*0.3;
+            }
+        }
+    }
+    if(v > 0) {
+        changeDir = changeDir == 1 ? -1 : 1;
+    }
+    cmd_.set ( v, w );
 }
 void LocalPlanner::wanderer2() {
     /**
     * @ToDo Wanderer
     * OPTIONAL: if you like you can write another one :-)
     **/
+    cmd_.set ( 0.4, 0.4 );
 }
 
 

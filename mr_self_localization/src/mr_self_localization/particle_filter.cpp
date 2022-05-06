@@ -105,9 +105,25 @@ void ParticleFilter::update ( const Command &u ) {
         /**
          * @node your code
          **/
+
+        std::normal_distribution<double> d1{ 0, config_.alpha1*std::pow(u.v(), 2) + config_.alpha2*std::pow(u.w(), 2) };
+        std::normal_distribution<double> d2{ 0, config_.alpha3*std::pow(u.v(), 2) + config_.alpha4*std::pow(u.w(), 2) };
+        std::normal_distribution<double> d3{ 0, config_.alpha5*std::pow(u.v(), 2) + config_.alpha6*std::pow(u.w(), 2) };
+
+        auto v_s = u.v() + d1(generator_);
+        auto w_s = u.w() + d2(generator_);
+        while( abs(w_s) < 0.000001 ) { w_s = u.w() + d2(generator_); }
+        auto gamma_s = d3(generator_);
+
+        dx = s->get_x() - ( v_s / w_s ) * sin(s->get_theta()) + ( v_s / w_s ) * sin(s->get_theta() + w_s * dt );
+        dy = s->get_y() + ( v_s / w_s ) * cos(s->get_theta()) - ( v_s / w_s ) * cos(s->get_theta() + w_s * dt ); 
+        dtheta = s->get_theta() + w_s * dt + gamma_s * dt;
+
+        s->set(dx, dy, dtheta);
 #endif
     }
 }
+
 Pose2D ParticleFilter::localization ( const Command &u, const MeasurementConstPtr &z ) {
     if ( updateTimestamp ( z->stamp() ) ) {
         updateLikelihoodField ();
@@ -120,8 +136,8 @@ Pose2D ParticleFilter::localization ( const Command &u, const MeasurementConstPt
     return pose_estimated_;
 
 }
-void ParticleFilter::plotData ( Figure &figure_map ) {
 
+void ParticleFilter::plotData ( Figure &figure_map ) {
     /**
     * @ToDo Likelihood Field - Visualization
     * plot the likelihood_field_ into figure_map.background()
@@ -133,7 +149,18 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
 #else
     /**
      * @node your code
-     **/
+     **/   
+
+    cv::Mat likelihood_field_scaled;
+    likelihood_field_.convertTo(likelihood_field_scaled, CV_8UC1, 255.0);
+
+    for(int r = 0; r < likelihood_field_.rows; ++r) {
+        for(int c = 0; c < likelihood_field_.cols; ++c) {
+            figure_map.background().at<cv::Vec3b>( r,c )[0] = ~likelihood_field_scaled.at<cv::int8_t>( r,c );
+        }    
+    }
+
+
 #endif
     double scale =  255.0 / samples_weight_max_ ;
     char text[0xFF];
@@ -152,6 +179,8 @@ void ParticleFilter::plotData ( Figure &figure_map ) {
         /**
          * @node your code
          **/
+        auto diff = Figure::green - Figure::blue;
+        figure_map.symbol(*s, .1, Figure::blue + diff * s->weight()/samples_weight_max_, 1, 1);
 #endif
     }
     sprintf ( text, "%4.3fsec", duration_last_update_.total_microseconds() /1000000. );
@@ -222,10 +251,15 @@ void ParticleFilter::updateLikelihoodField () {
     /**
      * @node your code
      **/
+
+    cv::distanceTransform(map_, distance_field_pixel_, cv::DIST_L2, cv::DIST_MASK_PRECISE, CV_8U);
+    distance_field_ = distance_field_pixel_ / scale_;
+
     for ( int r = 0; r < likelihood_field_.rows; r++ ) {
         for ( int c = 0; c < likelihood_field_.cols; c++ ) {
             float v = ( float ) c / ( float ) likelihood_field_.cols;
-            likelihood_field_ ( r,c ) = v;
+            // likelihood_field_ ( r,c ) = v;
+            likelihood_field_ ( r,c ) = boost::math::pdf(normal_likelihood_field, distance_field_ ( r,c ) );
         }
     }
 #endif
@@ -245,8 +279,12 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
      * @node your code
      **/
     /// Dummy: fills all values with the same value
+    auto q = static_cast<int>( z->size() / used_beams.size());
     for ( size_t i = 0; i < used_beams.size(); i++ ) {
-        used_beams[i] = i;
+        used_beams[i] = i * q;
+        if(used_beams[i] > z->size()) {
+            used_beams[i] = 0;
+        }
     }
 #endif
 
@@ -266,13 +304,25 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
     /**
      * @node your code
      **/
+
     /// Dummy: computes a funny weight
-    auto weight_sample = [] ( SamplePtr &s ) {
-        s->weight() = sqrt ( s->x() *s->x() +s->y() *s->y() );
+    auto weight_sample = [&] ( SamplePtr &s ) {
+        // s->weight() = sqrt ( s->x() *s->x() +s->y() *s->y() );
+        s->weight() = 1;
+        for(auto k : used_beams) {
+            if (z->operator [](k).length != z->range_max() ) {
+                auto z_map = tf_ * s->tf() * z->pose2d().tf() * z->operator [](k).end_point;
+                if(z_map.get_x() >= 0 && z_map.get_x() < likelihood_field_.rows && z_map.get_y() >= 0 && z_map.get_y() < likelihood_field_.cols) {
+                    s->weight() *= config_.z_hit * likelihood_field_(z_map.get_y(), z_map.get_x()) + config_.z_rand / config_.z_max;
+                } else {
+                    s->weight() *= config_.z_rand / config_.z_max; 
+                }
+            }
+        }   
     };
+
 #endif
     std::for_each ( samples.begin(), samples.end(), weight_sample );
-
     std::sort ( samples.begin(),  samples.end(), Sample::greater );
 
     double samples_weight_sum = 0;
@@ -285,7 +335,7 @@ void ParticleFilter::weighting ( const MeasurementLaserConstPtr &z ) {
         s->weight() /= samples_weight_sum;
         s->idx() = i;
         if ( samples_weight_max_ < s->weight() ) samples_weight_max_ = s->weight();
-        //std::cout << s->idx() << ": " << s->weight() << std::endl;
+        // std::cout << s->idx() << ": " << s->weight() << std::endl;
     }
 }
 
@@ -304,14 +354,54 @@ void ParticleFilter::resample () {
     /**
      * @node your code
      **/
-#endif
-        /// update number of samples
-        if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );
-        while ( config_.nr_of_samples > samples.size() ) {
-            SamplePtr &parent = samples[uniform_idx_des ( generator_ )];
-            double p = d ( generator_ );
-            samples.push_back ( std::make_shared<Sample> ( *parent ) );
-            SamplePtr &s  = samples.back();
-            normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+    int M = static_cast<int>(config_.resample_rate * samples.size());
+    
+    switch(config_.resampling_mode) {
+        case 0:
+        {
+            std::vector< Sample > temp;
+            temp.resize(M);
+            for(int i = 0; i < M; ++i ) {
+                temp[i] = *samples[i];
+            }
+            for( int i = 0; i < M; ++i ) {
+                SamplePtr &s = samples[samples.size() -1- i];
+                normal (s, temp[i], config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+            }
+            break;
+        }    
+        case 1:
+        {
+            std::vector< SamplePtr > temp;  
+            auto r = d ( generator_ ) / M;
+            auto c = samples[0]->weight();
+            for( auto m = 1, i = 0; m < M; ++m ) {
+                auto u = r + ( m - 1 ) / M;
+                while( u > c && i < samples.size() - 1 ) {
+                    c += samples[i]->weight();
+                    ++i;
+                }
+                temp.push_back(samples[i]);
+            }
+            if(samples.size() != temp.size()) {
+                samples.resize(temp.size());
+                samples = temp;
+            }
+            break;
         }
     }
+
+
+#endif
+    /// update number of samples
+    if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );
+    while ( config_.nr_of_samples > samples.size() ) {
+        SamplePtr &parent = samples[uniform_idx_des ( generator_ )];
+        double p = d ( generator_ );
+        samples.push_back ( std::make_shared<Sample> ( *parent ) );
+        SamplePtr &s  = samples.back();
+        normal ( s, *s, config_.sigma_static_position*dt, config_.sigma_static_orientation*dt );
+    }
+}
+
+std::vector< SamplePtr > ParticleFilter::getSamples() const { return samples; }

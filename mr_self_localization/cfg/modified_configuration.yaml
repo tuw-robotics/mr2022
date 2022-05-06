@@ -1,0 +1,18 @@
+# 1.Motion Model
+# loading modified configurations
+
+mode: 0
+initial_with_ground_truth: true
+plot_data: true
+reinitialize: true 
+particle_filter/initial_distribution: 0
+particle_filter/forward_prediction_time: 3
+particle_filter/enable_update: true 
+particle_filter/enable_resample: false
+particle_filter/enable_weighting: false 
+particle_filter/sigma_init_position: 0 
+particle_filter/sigma_init_orientation: 0
+particle_filter/sigma_static_position: 0
+particle_filter/sigma_static_orientation: 0
+map_image: "$MR_DIR/src/mr-20.04/mr_self_localization/maps/cave.png" 
+map_lines: "$MR_DIR/src/mr-20.04/mr_self_localization/maps/cave.yml"

@@ -61,6 +61,7 @@ public:
      * @param config of type mr_self_localization::ParticleFilterConfig*
      **/
     void setConfig ( const void *config );
+    std::vector< SamplePtr > getSamples() const ; 
 private:
     int width_pixel_,  height_pixel_; /// map size in pixel
     double min_x_, max_x_, min_y_, max_y_, roation_; /// map real size and rotation

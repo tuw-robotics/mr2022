@@ -14,6 +14,7 @@
 #include <mr_self_localization/KalmanFilterConfig.h>
 #include <mr_self_localization/SelfLocalizationConfig.h>
 #include <mr_self_localization/self_localization.h>
+#include <tf/transform_broadcaster.h>
 /**
  * class to cover the ros communication for the self-localization
  **/
@@ -22,6 +23,8 @@ public:
     SelfLocalizationNode ( ros::NodeHandle & n ); /// Constructor
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
+    void publishOdomToMapTf (); 
+    void publishFilterParticles (); 
 private:
     ros::NodeHandle n_;             /// node handler to the root node
     ros::NodeHandle n_param_;       /// node handler to the current node
@@ -50,7 +53,9 @@ private:
     std::shared_ptr<dynamic_reconfigure::Server<mr_self_localization::KalmanFilterConfig> > reconfigureServerKalmanFilter_; /// parameter server stuff for the ekf
     dynamic_reconfigure::Server<mr_self_localization::KalmanFilterConfig>::CallbackType reconfigureFncKalmanFilter_; /// parameter server stuff for the ekf
     void callbackConfigKalmanFilter ( mr_self_localization::KalmanFilterConfig &config, uint32_t level ); /// callback function on incoming parameter changes for the ekf
-
+    
+    tf::TransformBroadcaster br_;
+    ros::Publisher pub_filter_particles_;
 };
 
 #endif // MR_NOTE_H

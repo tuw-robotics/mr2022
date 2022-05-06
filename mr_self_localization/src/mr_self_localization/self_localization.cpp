@@ -24,8 +24,19 @@ void SelfLocalization::onMouseMap ( int event, int x, int y, int flags, void* pa
      * @node your code
      **/
     if ( event == cv::EVENT_LBUTTONDOWN ) {
-        std::cout << self_localization->mouse_on_map_ << std::endl;
+        // std::cout << self_localization->mouse_on_map_ << std::endl;
+        pose.position() = self_localization->mouse_on_map_;
+        std::cout << pose.position() << std::endl;
     }
+    if ( event == cv::EVENT_LBUTTONUP ) {
+        pose.set(pose.position(), self_localization->mouse_on_map_); 
+        self_localization->pose_filter_->reinitialize(pose);
+        std::cout << pose.get_theta() << std::endl;
+    }
+    if( event == cv::EVENT_MBUTTONDOWN ) {
+        self_localization->pose_filter_->reinitialize(self_localization->pose_ground_truth_);
+    }
+    
 #endif
 }
 
@@ -60,7 +71,6 @@ void SelfLocalization::init() {
                             config_.map_rotation + M_PI, filename_map );
 }
 
-
 void SelfLocalization::plot() {
     if ( config_.plot_data ) plotMap();
     cv::waitKey ( 10 );
@@ -70,8 +80,8 @@ void SelfLocalization::plotMap() {
     figure_map_.clear();
     char text[0xFF];
 
-    //cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
-    cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
+    cv::Matx33d M = pose_ground_truth_.tf() * measurement_laser_->pose2d().tf();  /// for testing only
+    // cv::Matx33d M = pose_estimated_.tf() * measurement_laser_->pose2d().tf();
 
 
     for ( size_t i = 0; i < measurement_laser_->size(); i++ ) {
@@ -85,7 +95,8 @@ void SelfLocalization::plotMap() {
         /**
          * @node your code
          **/
-        Point2D pm ( cos ( i ),sin ( i ) );
+        // Point2D pm ( cos ( i ),sin ( i ) );
+        Point2D pm = M * measurement_laser_->operator[] (i).end_point;
         figure_map_.symbol ( pm, Figure::red );
 #endif
 
@@ -102,6 +113,7 @@ void SelfLocalization::plotMap() {
     /**
      * @node your code
      **/
+    cv::putText ( figure_map_.view(), "Nino Wegleitner", cv::Point ( 40, 550 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
 #endif
     figure_map_.symbol ( odom_, 0.2, Figure::cyan, 1 );
     figure_map_.symbol ( pose_ground_truth_, 0.2, Figure::orange, 1 );

@@ -4,6 +4,7 @@
 #include <memory>
 #include <mr_geometry/geometry.h>
 #include <boost/date_time/posix_time/ptime.hpp>
+#include <mr_self_localization/sample.h>
 
 namespace moro {
 
@@ -86,6 +87,7 @@ public:
      * @return estimated pose at the time of the measurement
      **/
     virtual Pose2D localization ( const Command &u, const MeasurementConstPtr &z ) = 0;
+    virtual std::vector< SamplePtr > getSamples() const = 0; 
 protected:
     /**
      * Inits the system

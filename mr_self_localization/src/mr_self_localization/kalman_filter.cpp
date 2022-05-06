@@ -5,6 +5,14 @@
 #include <mr_geometry/linesegment2d_detector.h>
 #include <iostream>
 
+const bool DEBUG_1_1 = false;
+const bool DEBUG_1_2 = false;
+const bool DEBUG_2_1 = false;
+const bool DEBUG_2_2 = false;
+const bool DEBUG_2_3 = false;
+const bool DEBUG_2_4 = false;
+const bool DEBUG_2_5 = true;
+
 using namespace moro;
 KalmanFilter::KalmanFilter()
     : PoseFilter ( KALMAN_FILTER )
@@ -76,6 +84,16 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
         //figure_map.line ( p0, p1, color );
         //figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
         //figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+
+        Point2D p0 = M * measurement_linesegments_[i].p0();
+        Point2D p1 = M * measurement_linesegments_[i].p1();
+        Point2D pc = ( p0 + p1 ) / 2;
+        figure_map.line ( p0, p1, color );
+        figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_map.putText ( boost::lexical_cast<std::string> ( i ),  pc, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+
+        ROS_INFO_STREAM_COND(DEBUG_2_1, "2.1 @ToDo visualize the measurement");
+        ROS_INFO_STREAM_COND(DEBUG_2_1, std::endl);
 #endif
 
     }
@@ -93,6 +111,23 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
             /**
              * @node your code
              **/
+
+            if(measurement_match_[i] >= 0) {
+                Point2D p0 = map_linesegments_[measurement_match_[i]].p0();
+                Point2D p1 = M * measurement_linesegments_[i].p0();
+                Point2D p2 = map_linesegments_[measurement_match_[i]].p1();
+                Point2D p3 = M * measurement_linesegments_[i].p1();
+                if( pow(p0.x() - p1.x(), 2) + pow(p0.y() - p1.y(), 2) < pow(p0.x() - p3.x(), 2) + pow(p0.y() - p3.y(), 2) ) {
+                    figure_map.line ( p0, p1, Figure::blue_dark );
+                    figure_map.line ( p2, p3, Figure::blue_dark );
+                } else {
+                    figure_map.line ( p0, p3, Figure::blue_dark );
+                    figure_map.line ( p2, p1, Figure::blue_dark );
+                }
+                
+            }
+
+            ROS_INFO_STREAM_COND(DEBUG_2_4, "2.4 @ToDo visualize the matches");
 #endif
 
         }
@@ -118,11 +153,27 @@ void KalmanFilter::plotMap ( Figure &figure_map ) {
     /**
      * @node your code
      **/
-    cv::Matx<double, 2, 2> E ( 1, 0, 0, 1 );  /// must be changed
+    // cv::Matx<double, 2, 2> E ( 1, 0, 0, 1 );  /// must be changed
+    // cv::Mat_<double> eigval, eigvec;
+    // cv::eigen ( E, eigval, eigvec );
+    // cv::RotatedRect ellipse ( ( figure_map.Mw2m() * pose_estimated_.position() ).cv(),cv::Size ( 49,29 ), 93 ); /// must be changed
+    // cv::ellipse ( figure_map.view(),ellipse, Figure::magenta, 1, cv::LINE_AA );
+
+    constexpr double RADTODEGREE = 57.295779513;
+    auto Mw2m_2x2 = figure_map.Mw2m().get_minor<2,2>(0,0);
+    auto P_2x2 = P.get_minor<2,2>(0,0);
+    cv::Matx<double, 2, 2> E = Mw2m_2x2 * P_2x2 * Mw2m_2x2.t();
     cv::Mat_<double> eigval, eigvec;
     cv::eigen ( E, eigval, eigvec );
-    cv::RotatedRect ellipse ( ( figure_map.Mw2m() * pose_estimated_.position() ).cv(),cv::Size ( 49,29 ), 93 ); /// must be changed
-    cv::ellipse ( figure_map.view(),ellipse, Figure::magenta, 1, cv::LINE_AA );
+    cv::RotatedRect ellipse ( ( figure_map.Mw2m() * pose_estimated_.position() ).cv(), cv::Size( sqrt(eigval.at<double>(0)), sqrt(eigval.at<double>(1)) ), atan2( eigvec.at<double>(0,1) , eigvec.at<double>(0,0) ) * RADTODEGREE ); /// must be changed
+    cv::ellipse ( figure_map.view(), ellipse, Figure::magenta, 1, cv::LINE_AA );
+
+    ROS_INFO_STREAM_COND(DEBUG_1_2, "1.2 @ToDo visualize the pose covariance");
+    ROS_INFO_STREAM_COND(DEBUG_1_2, "eigenvalues: "  << eigval);
+    ROS_INFO_STREAM_COND(DEBUG_1_2, "eigenvectors: " << eigvec);
+    ROS_INFO_STREAM_COND(DEBUG_1_2, "orientation: "  << atan2( eigvec.at<double>(0,1) , eigvec.at<double>(0,0) )* RADTODEGREE);
+    ROS_INFO_STREAM_COND(DEBUG_1_2, "position: "     << ( figure_map.Mw2m() * pose_estimated_.position() ).cv() << std::endl);
+
 #endif
 
     for ( size_t i = 0; i < msgs_.size(); i++ ) {
@@ -171,6 +222,16 @@ void KalmanFilter::plotHoughSpace ( ) {
             //if ( hspace.inside ( rectSpace ) ) {
             //    figure_hspace_.view().at<cv::Vec3b> ( hspace ) -=  cv::Vec3b ( 50,10,10 );
             //}
+
+            auto angle = alpha / 1.1;
+            auto rho = p0.x() * cos(angle) + p0.y() * sin(angle);
+            
+            cv::Point hspace (( figure_hspace_.max_x() * 0.1 +  angle_normalize(angle, 0, 2 * M_PI)) * figure_hspace_.scale_x(), rho * figure_hspace_.scale_y() );
+            if ( hspace.inside ( rectSpace ) ) {
+                figure_hspace_.view().at<cv::Vec3b> ( hspace ) -=  cv::Vec3b (  50, 10, 10 );
+            }
+
+            // ROS_INFO_STREAM_COND(DEBUG_2_5, "2.5.1 @ToDo EKF - Plot the Hough-space waves for each laser scan beam.");
 #endif
         }
     }
@@ -194,6 +255,13 @@ void KalmanFilter::plotHoughSpace ( ) {
         //figure_hspace_.circle ( polar, 3, color, 1 );
         //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
         //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+        Polar2D polar = predicted_linesegments_[i].toPolar();
+        figure_hspace_.circle ( polar, 3, color, 1 );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+
+        // ROS_INFO_STREAM_COND(DEBUG_2_5, "2.5.2 @ToDo Plot measurement prediction");
+        // ROS_INFO_STREAM_COND(DEBUG_2_5, "polar: " << polar );
 #endif
     }
     cv::RotatedRect ellipse;
@@ -218,6 +286,13 @@ void KalmanFilter::plotHoughSpace ( ) {
         //cv::ellipse ( figure_hspace_.view(), ellipse, color, 1, cv::LINE_AA );
         //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
         //figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+
+        ellipse.center = cv::Point2f(( figure_hspace_.max_x() * 0.1 +  angle_normalize(polar.alpha(), 0, 2*M_PI)) * figure_hspace_.scale_x(), polar.rho() * figure_hspace_.scale_y() );
+        cv::ellipse ( figure_hspace_.view(), ellipse, color, 1, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, Figure::white,  3, cv::LINE_AA );
+        figure_hspace_.putText ( boost::lexical_cast<std::string> ( i ),  polar, cv::FONT_HERSHEY_PLAIN, 0.6, color, 1, cv::LINE_AA );
+
+        // ROS_INFO_STREAM_COND(DEBUG, "2.5.3 @ToDo Plot measurement");
 #endif
     }
     cv::imshow ( figure_hspace_.title(),figure_hspace_.view() );
@@ -241,6 +316,14 @@ void KalmanFilter::data_association ( ) {
          * @node your code
          **/
         //predicted_linesegments_[i].set
+
+        Point2D point0 = M * Point2D(map_linesegments_[i].x0(), map_linesegments_[i].y0());
+        Point2D point1 = M * Point2D(map_linesegments_[i].x1(), map_linesegments_[i].y1());
+        predicted_linesegments_[i].set( point0.x(), point0.y(), point1.x(), point1.y() );
+
+        ROS_INFO_STREAM_COND(DEBUG_2_2, "2.2 @ToDo compute the measurement prediction");
+        ROS_INFO_STREAM_COND(DEBUG_2_2, "point0:" << point0);
+        ROS_INFO_STREAM_COND(DEBUG_2_2, "point1:" << point1 << std::endl);
 #endif
     }
 
@@ -265,6 +348,34 @@ void KalmanFilter::data_association ( ) {
             /**
              * @node your code
              **/
+            double drho = abs(prediction.rho() - measurement.rho()), dalpha = angle_difference(prediction.alpha(), measurement.alpha());
+            if( drho < config_.data_association_line_rho && dalpha < config_.data_association_line_alpha ) {
+                if(measurement_match_[i] == -1) {
+                    measurement_match_[i] = j;
+                } else {
+                    // compare with predicted_linesegments_[j] with predicted_linesegments_[measurement_match_[i]]
+                    auto sum1 = 0, sum2 = 0;
+                    Point2D p1, p2;
+
+                    for(int a = 0; a < measurement_linesegments_[i].length(); a++) {
+                        double dx = (measurement_linesegments_[i].x1() - measurement_linesegments_[i].x0()) / measurement_linesegments_[i].length();
+                        double dy = (measurement_linesegments_[i].y1() - measurement_linesegments_[i].y0()) / measurement_linesegments_[i].length();
+
+                        p1 = {predicted_linesegments_[j].x0() + a*dx, predicted_linesegments_[j].y0() + a*dy}; 
+                        p2 = {predicted_linesegments_[measurement_match_[i]].x0() + a*dx, predicted_linesegments_[measurement_match_[i]].y0() + a*dy}; 
+
+                        sum1 += predicted_linesegments_[j].distanceTo(p1);
+                        sum2 += predicted_linesegments_[measurement_match_[i]].distanceTo(p2);
+                    }
+
+                    if(sum1 < sum2) {
+                        measurement_match_[i] = j;
+                    }
+                }
+                ROS_INFO_STREAM_COND(DEBUG_2_3, "2.3 @ToDo matching measurement with prediction");
+                ROS_INFO_STREAM_COND(DEBUG_2_3, "Match: measurement idx:" << i << ", match_idx: " << measurement_match_[i]);
+            }        
+            
 #endif
         }
     }
@@ -318,8 +429,46 @@ void KalmanFilter::prediction ( const Command &u ) {
         /**
          * @node your code
          **/
-        xp = x;
-        Pp = P;
+
+        double dt = duration_last_update_.total_microseconds() /1000000.;
+        double theta = x[2];
+        
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "1.1 @ToDo predict pose and covariance");
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "x: " << pose_estimated_.x());
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "y: " << pose_estimated_.y());
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "theta: " << pose_estimated_.theta());
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "v: " << u.v());
+        ROS_INFO_STREAM_COND(DEBUG_1_1, "w: " << u.w() << std::endl);
+
+        if( abs( u.w() ) > 0.00001  ) {
+            double r = u.v() / u.w();
+            G = {   1,  0,  -r * cos(theta) + r * cos(theta + u.w() * dt ),
+                    0,  1,  -r * sin(theta) + r * sin(theta + u.w() * dt ),
+                    0,  0,  1   };
+            V = {   ( -sin(theta) + sin(theta + u.w() * dt ) ) / u.w(), (   u.v() * ( sin(theta) - sin(theta + u.w() * dt ) )) / pow( u.w(), 2 ) + ( u.v() * cos(theta + u.w() * dt ) * dt ) / u.w(), 
+                    (  cos(theta) - cos(theta + u.w() * dt ) ) / u.w(), ( - u.v() * ( cos(theta) - cos(theta + u.w() * dt ) )) / pow( u.w(), 2 ) + ( u.v() * sin(theta + u.w() * dt ) * dt ) / u.w(), 
+                    0,  dt    };
+            M = {   config_.alpha_1 * pow( u.v(), 2 ) + config_.alpha_2 * pow( u.w(), 2 ),    0,
+                    0,     config_.alpha_3 * pow( u.v(), 2 ) + config_.alpha_4 * pow( u.w(), 2 )  };
+            xp = x + cv::Vec<double, 3>{ -r * sin(theta) + r * sin(theta + u.w() * dt ), r * cos(theta) - r * cos(theta + u.w() * dt ),  u.w() * dt };
+            ROS_INFO_STREAM_COND(DEBUG_1_1, "w: " << u.w() << std::endl);
+        } else {
+            G = {   1,  0,  - u.v() * sin(theta) * dt,
+                    0,  1,    u.v() * cos(theta) * dt,
+                    0,  0,  1   };
+            V = {   cos(theta) * dt, - u.v() * sin(theta) * pow(dt, 2) / 2, 
+                    sin(theta) * dt,   u.v() * cos(theta) * pow(dt, 2) / 2, 
+                    0,  dt    };
+            M = {   config_.alpha_1 * pow( u.v(), 2 ) ,    0,
+                    0,      config_.alpha_3 * pow( u.v(), 2 )  };
+            xp = x + cv::Vec<double, 3>{ u.v() * cos(theta) * dt, u.v() * sin(theta) * dt, 0 };
+        }
+        R = V * M * V.t();
+        Pp = G * P * G.t() + R;
+
+        // xp = x;
+        // Pp = P;
+
 #endif
     } else {
         xp = x;
@@ -365,6 +514,28 @@ void KalmanFilter::correction () {
         // Pc = ?
         // xc = ?
 
+        /// first the prediction and the measurement into polar space and compute the distance
+        cv::Matx<double, 2, 1> zp = { predicted_linesegments_[idx_map].toPolar().alpha(),   predicted_linesegments_[idx_map].toPolar().rho() }; 
+        cv::Matx<double, 2, 1> z  = { measurement_linesegments_[idx_measurement].toPolar().alpha(), measurement_linesegments_[idx_measurement].toPolar().rho() };
+        if (idx_map != -1) {
+            auto mu_x = xc[0], mu_y = xc[1], mu_theta = xc[2];
+            auto w_rho = map_linesegments_[idx_map].toPolar().rho();
+            auto w_alpha = map_linesegments_[idx_map].toPolar().alpha();
+            if(w_rho > mu_x * cos(w_alpha) + mu_y * sin(w_alpha)) {
+                H = {0,0,-1, -cos(w_alpha), -sin(w_alpha), 0};
+            } else {
+                H = {0,0,-1, cos(w_alpha), sin(w_alpha), 0};
+            }
+            v = {angle_difference(z(0), zp(0)), z(1) - zp(1)};
+            Si = H * Pc * H.t() + Q;
+            // d_mahalanobis = ?
+            K = Pc * H.t() * Si.inv();
+            // dx = ?
+            cv::Matx<double, 3, 3> I;
+            Pc = ( I.eye() - K * H ) * Pc;
+            xc += K * v;
+        }
+
 #endif
     }
 
@@ -376,3 +547,5 @@ void KalmanFilter::correction () {
         pose_estimated_ =  pose_predicted_.state_vector();
     }
 }
+
+std::vector< SamplePtr > KalmanFilter::getSamples() const { return samples; }

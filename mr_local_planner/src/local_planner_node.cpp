@@ -51,7 +51,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_laser_ =
+    sub_laser_ = n.subscribe("scan", 10, &LocalPlannerNode::callbackLaser, this);
 #endif
 
 
@@ -64,8 +64,8 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_goal_ =
-    // sub_odom_ =
+    sub_goal_ = n.subscribe("goal", 10, &LocalPlannerNode::callbackGoal, this);
+    sub_odom_ = n.subscribe("odom", 10, &LocalPlannerNode::callbackOdometry, this);
 #endif
 
     /// defines a publisher for velocity commands
@@ -98,14 +98,14 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     /**
      * @node your code
      **/
-    //measurement_laser_.range_max() =0;  /// @ToDo
-    //measurement_laser_.range_min() = 0; /// @ToDo
-    //measurement_laser_.resize ( 0 ); /// @ToDo
-    //for ( ....
-    /// measurement_laser_ [i].length  =
-    /// measurement_laser_ [i].angle  =
-    /// measurement_laser_ [i].end_point  =
-    //}
+    measurement_laser_.range_max() = _laser.range_max;  /// @ToDo
+    measurement_laser_.range_min() = _laser.range_min;  /// @ToDo
+    measurement_laser_.resize ( _laser.ranges.size() ); /// @ToDo
+    for ( size_t i = 0; i < measurement_laser_.size(); i++ ) {
+        measurement_laser_ [i].length  = _laser.ranges[i];
+        measurement_laser_ [i].angle  = _laser.angle_min + _laser.angle_increment*i;
+        measurement_laser_ [i].end_point  = Point2D(0.22+cos(measurement_laser_[i].angle)*measurement_laser_[i].length, sin(measurement_laser_[i].angle)*measurement_laser_[i].length);
+    }
 #endif
 }
 /**

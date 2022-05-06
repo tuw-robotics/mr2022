@@ -1,0 +1,20 @@
+<launch>     
+    <!-- Launch Map Server using custom map-->
+    <arg name="room" default="floorplan" />
+    <arg name="map" default="floorplan_slam.yaml" />
+    <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/map_server/$(arg room)/$(arg map)"/>
+
+    <!-- Launch AMCL and remap scan to base_scan -->
+    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+        <remap from="scan" to="base_scan"/>
+    </node> 
+
+    <!-- Launch RViz with presets --> 
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find mr_launch)/cfg/rviz/rviz_mr.rviz"/>
+
+    <!-- Launch Move Base launch-File move_base_stage.launch -->  
+    <include file="$(find mr_launch)/launch/move_base_stage.launch"/>
+
+    <!-- Launch teleop_twist_keyboard -->
+    <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop" output="screen"/>
+</launch> 

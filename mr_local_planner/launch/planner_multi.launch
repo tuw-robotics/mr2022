@@ -8,15 +8,14 @@
       <arg name="world" default="$(arg world)" />
     </include>
   </group>
-  
-  <group ns="robot_0">
+ <group ns="robot_0">
     <include file="$(find mr_local_planner)/launch/planner.launch">
       <arg name="stage" default="0" />
       <arg name="mode" default="$(arg mode)" />
       <arg name="plot_data" default="false" />
     </include>
   </group>  
-  <group ns="robot_1">
+ <group ns="robot_1">
     <include file="$(find mr_local_planner)/launch/planner.launch">
       <arg name="stage" default="0" />
       <arg name="mode" default="$(arg mode)" />
@@ -57,6 +56,5 @@
       <arg name="mode" default="$(arg mode)" />
       <arg name="plot_data" default="false" />
     </include>
-  </group>
-  
+  </group> 
 </launch>

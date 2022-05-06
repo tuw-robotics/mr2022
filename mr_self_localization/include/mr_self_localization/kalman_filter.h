@@ -6,6 +6,7 @@
 #include <mr_self_localization/pose_filter.h>
 #include <mr_self_localization/KalmanFilterConfig.h>
 
+
 namespace moro {
 class KalmanFilter;
 typedef std::shared_ptr< KalmanFilter > KalmanFilterPtr;
@@ -51,6 +52,7 @@ public:
      * @param config of type mr_self_localization::KalmanFilterConfig*
      **/
     void setConfig ( const void *config );
+    std::vector< SamplePtr > getSamples() const ; 
 private:   
     /**
      * initializes the filter
@@ -105,6 +107,8 @@ private:
     std::vector<Point2D> measurement_local_scanpoints_; /// laser beam endpoints for line detection
     mr_self_localization::KalmanFilterConfig config_;  /// parameters
     std::vector<std::string > msgs_;                    /// vector of strings to collect messages for printing
+
+    std::vector< SamplePtr > samples; 
 };
 };
 
