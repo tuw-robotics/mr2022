@@ -64,7 +64,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    sub_goal_ = n.subscribe("goal", 10, &LocalPlannerNode::callbackGoal, this);
+    sub_goal_ = n.subscribe("/move_base_simple/goal", 10, &LocalPlannerNode::callbackGoal, this);
     sub_odom_ = n.subscribe("odom", 10, &LocalPlannerNode::callbackOdometry, this);
 #endif
 
@@ -128,6 +128,7 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param odom
  **/
 void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
+    ROS_INFO_STREAM("callbackGoal!");
     goal_.set ( goal.x, goal.y, goal.theta );
     goal_.recompute_cached_cos_sin();
 

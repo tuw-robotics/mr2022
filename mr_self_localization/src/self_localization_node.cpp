@@ -324,17 +324,17 @@ void SelfLocalizationNode::callbackTimer(const ros::TimerEvent& event) {
     map_.header.stamp = ros::Time::now();
     map_.info.resolution = 1. / figure_map_.scale_x(); // m/cell
     map_.info.width = figure_map_.width(); // cells
-    map_.info.height = figure_map_.height() ; // cells
-    map_.info.origin.position.x = - ( figure_map_.width() / 2 ) / figure_map_.scale_x() ; // origin in x of the map [m]
-    map_.info.origin.position.y = - ( figure_map_.height() / 2 ) / figure_map_.scale_y() ; // origin in y of the map [m]
+    map_.info.height = figure_map_.height(); // cells
+    map_.info.origin.position.x = - ( figure_map_.width() / 2. ) / figure_map_.scale_x(); // origin in x of the map [m]
+    map_.info.origin.position.y = - ( figure_map_.height() / 2. ) / figure_map_.scale_y(); // origin in y of the map [m]
     map_.data.resize( 0 );
 
     cv::Mat data = cv::imread(figure_map_.backgroundFileName(), cv::IMREAD_GRAYSCALE);
     // cv::imshow("background", data);
 
-    for(size_t i = 0; i < figure_map_.width(); ++i) {
-        for(size_t j = 0; j < figure_map_.height(); ++j) {
-            map_.data.push_back( ( 255 - data.at<u_int8_t>( i , j ) ) / 255 * 100 );
+    for(size_t i = 0; i < figure_map_.height(); ++i) {
+        for(size_t j = 0; j < figure_map_.width(); ++j) {
+            map_.data.push_back( ( 255 - data.at<u_int8_t>( j , i ) ) / 255 * 100 );
         }
     }
 
