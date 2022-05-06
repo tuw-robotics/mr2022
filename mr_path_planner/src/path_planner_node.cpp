@@ -12,7 +12,7 @@ using namespace moro;
 int main(int argc, char **argv)
 {
 
-    ros::init(argc, argv, "goto");
+    ros::init(argc, argv, "path_planner");
     ros::NodeHandle n;
     PathPlannerNode path_planner(n);
     path_planner.init();
@@ -62,7 +62,13 @@ void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
 {
     ROS_INFO("callbackMap!");
     map_ = map;
-    astar_map_ = std::make_shared<Map>(map_.data, map_.info, 80);
+    MapOptions options_ = {
+        2, // scale
+        10, // blur iterations
+        true, // diagonal paths
+        200 // occupancy threshold (0-255)
+    };
+    astar_map_ = std::make_shared<Map>(map_, options_);
 }
 
 void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
@@ -93,8 +99,8 @@ void PathPlannerNode::findPath() {
         std::shared_ptr<micropather::MicroPather> pather = std::make_shared<micropather::MicroPather>(astar_map_.get());
         micropather::MPVector< void* > path;
         float totalCost = 0;
-        void* startState = astar_map_->worldToNode(pose_estimated_.get_x(), pose_estimated_.get_y());
-        void* endState = astar_map_->worldToNode(goal_.get_x(), goal_.get_y());
+        void* startState = astar_map_->worldToNode(pose_estimated_);
+        void* endState = astar_map_->worldToNode(goal_);
         int result = pather->Solve( startState, endState, &path, &totalCost );
 
         path_.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
@@ -104,13 +110,13 @@ void PathPlannerNode::findPath() {
 
         ROS_INFO("Found path to goal! Total cost: %f", totalCost);
         for (int i = 0; i < path.size(); i++) {
-            auto xyWorld = astar_map_->nodeToWorld(path[i]);
-            ROS_INFO("Step %d in path: (%f,%f)", i, xyWorld.first, xyWorld.second);
+            auto pointWorld = astar_map_->nodeToWorld(path[i]);
+            ROS_INFO("Step %d in path: (%f,%f)", i, pointWorld.get_x(), pointWorld.get_y());
             geometry_msgs::PoseStamped pose;
             pose.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
             pose.header.frame_id = "map";
-            pose.pose.position.x = xyWorld.first;
-            pose.pose.position.y = xyWorld.second;
+            pose.pose.position.x = pointWorld.get_x();
+            pose.pose.position.y = pointWorld.get_y();
             pose.pose.position.z = 0;
             pose.pose.orientation = tf::createQuaternionMsgFromYaw ( 0 );
             path_.poses.push_back(pose);
