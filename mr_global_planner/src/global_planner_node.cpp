@@ -46,8 +46,6 @@ void GlobalPlannerNode::callback_goal(const geometry_msgs::PoseStamped &target) 
 
     auto t1 = this->map_to_img({start_tf.transform.translation.x, start_tf.transform.translation.y});
 
-    std::cout << "tf: " << start_tf.transform.translation.x << ":" << start_tf.transform.translation.y << std::endl;
-
     this->start.x = t1.first;
     this->start.y = t1.second;
 
@@ -56,10 +54,6 @@ void GlobalPlannerNode::callback_goal(const geometry_msgs::PoseStamped &target) 
 
     this->goal.x = t2.first;
     this->goal.y = t2.second;
-
-    std::cout << "Start: " << this->start.x << ":" << this->start.y << std::endl;
-    std::cout << "Target: " << this->goal.x  << ":" << this->goal.y << std::endl;
-
 
     // Plan
     this->plan();
@@ -117,6 +111,10 @@ void GlobalPlannerNode::publish_costmap() {
 }
 
 void GlobalPlannerNode::publish_path() {
+    if (this->path.empty()) {
+        ROS_WARN("Failed to find a path to goal!");
+    }
+
     nav_msgs::Path path_msg;
     path_msg.header.frame_id = "map";
     path_msg.header.stamp = ros::Time::now();

@@ -100,9 +100,12 @@ void GlobalPlanner::backtrack() {
     this->path.push_back(current);
 
     while (current != this->start) {
+        if (this->pred.find(current) == this->pred.end()) { // Backtracking found no end
+            this->path.clear();
+            break;
+        }
+
         current = this->pred.at(current);
         this->path.push_back(current);
     }
-
-//    std::reverse(this->pred.begin(), this->pred.end());
 }
