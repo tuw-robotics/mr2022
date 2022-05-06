@@ -76,7 +76,6 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     reconfigureServer_.setCallback ( reconfigureFnc_ );
 
     sub_move_base_simple_goal_ = n.subscribe("/move_base_simple/goal", 10, &LocalPlannerNode::callbackMoveBaseSimpleGoal, this);
-    tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
 }
 
 void LocalPlannerNode::callbackConfigLocalPlanner ( mr_local_planner::LocalPlannerConfig &config, uint32_t level ) {
@@ -110,6 +109,7 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
         measurement_laser_ [i].angle  = _laser.angle_min + _laser.angle_increment*i;
         measurement_laser_ [i].end_point  = Point2D(0.22+cos(measurement_laser_[i].angle)*measurement_laser_[i].length, sin(measurement_laser_[i].angle)*measurement_laser_[i].length);
     }
+    tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
 #endif
 }
 /**
