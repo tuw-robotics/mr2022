@@ -1,7 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node pkg="mr_planner" type="mr_planner_node" name="mr_planner_node" output="log">  
+  <arg name="mode" default="0" />
+  <arg name="goal" default="move_base_simple/goal" />
+  <arg name="scan" default="base_scan" />
+
+  <node pkg="mr_planner" type="mr_planner_node" name="mr_planner_node" output="log">
+    <remap from="goal" to="$(arg goal)" />
+    <remap from="scan" to="$(arg scan)" />
   </node>
   
 </launch>

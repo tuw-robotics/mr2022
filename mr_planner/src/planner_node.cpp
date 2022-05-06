@@ -13,8 +13,9 @@ int main(int argc, char **argv) {
     ros::Rate rate(10);  /// ros loop frequency synchronized with the wall time (simulated time)
 
     while (ros::ok()) {
-        
-        planner.ai();
+
+        planner.updateEstimatedPose();
+        planner.ai(planner.estimatedPose());
 
         /// sets and publishes velocity commands
         planner.publishMotion();
@@ -41,7 +42,7 @@ PlannerNode::PlannerNode(ros::NodeHandle &n)
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-
+    
     reconfigureFnc_ = boost::bind(&PlannerNode::callbackConfigPlanner, this, _1, _2);
     reconfigureServer_.setCallback(reconfigureFnc_);
 }
@@ -77,15 +78,20 @@ void PlannerNode::callbackLaser(const sensor_msgs::LaserScan &_laser) {
     }
 }
 
+/*
+* @ param the goal to reach in world coordinates. 
+*/
 
 void PlannerNode::callbackGoal(const geometry_msgs::Pose2D &goal) {
     goal_.set(goal.x, goal.y, goal.theta);
     goal_.recompute_cached_cos_sin();
 
-    start_ = odom_;
+    geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link", ros::Time::now(), ros::Duration(3.0));
+    
+    start_ = estimatedPose();
+
     action_state_ = ActionState::INIT;
 
-    Point2D goal_local;
     ROS_INFO ("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
 }
 
@@ -102,3 +108,21 @@ void PlannerNode::publishMotion() {
     /// publishes motion command
     pub_cmd_.publish(cmd);
 }
+
+Pose2D PlannerNode::estimatedPose(){
+    return pose_estimation_;
+}
+
+void PlannerNode::updateEstimatedPose(){
+    try{
+    geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link", ros::Time::now(), ros::Duration(3.0));
+
+    pose_estimation_ = Pose2D(
+        start_tf.transform.translation.x,
+        start_tf.transform.translation.y,
+        start_tf.transform.rotation.z);
+    
+    }catch(tf2::TransformException &ex) {
+        ROS_WARN("%s",ex.what());
+    }
+ }

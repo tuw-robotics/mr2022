@@ -9,7 +9,7 @@
 
 namespace moro {
 /**
- * Robot class
+ * Class for local planning in from current location to a goal (straight or via a path)
  */
 class Planner {
 public:
@@ -22,15 +22,17 @@ public:
 
     enum ActionState {
         NA   = 0,
-        INIT = 1,    /// init
-        FORWARD = 2 
+        INIT = 1, 
+        ROTATION = 2,
+        FORWARD = 3,
+        FINAL_ROTATION = 4
     };
     static std::map<ControlMode, std::string> ControlModeName_; 
     
     
     Planner(const std::string &ns);        /// Constructor
     void init();                         /// initialization
-    void ai();                           /// artificial intelligence calls a behavior
+    void ai(Pose2D world_pos);                           /// artificial intelligence calls a behavior
     void plot();                         /// plots sensor input
     
 protected:
@@ -44,12 +46,18 @@ protected:
 
     MeasurementLaser measurement_laser_;    /// laser measurements
 
-    void straight();
-    void straightAvoid();
-    void path();
+    void straight(Pose2D world_pos);
+    void straightAvoid(Pose2D world_pos);
+    void path(Pose2D world_pos);
 
     mr_planner::PlannerConfig config_;
+
+    
+private:
+    //State machine variables
+    float subgoal_rotation_;
 };
+
 }
 
 #endif // PLANNER_H

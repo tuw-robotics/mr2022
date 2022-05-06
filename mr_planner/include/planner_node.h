@@ -17,6 +17,9 @@ class PlannerNode : public moro::Planner {
 public:
     PlannerNode ( ros::NodeHandle & n ); /// Constructor
     void publishMotion ();      /// publishes the motion commands 
+    moro::Pose2D estimatedPose();
+    void updateEstimatedPose();
+
 private:
     ros::NodeHandle n_;         /// node handler to the root node
     ros::NodeHandle n_param_;   /// node handler to the current node
@@ -30,6 +33,7 @@ private:
     void callbackConfigPlanner ( mr_planner::PlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes
     dynamic_reconfigure::Server<mr_planner::PlannerConfig> reconfigureServer_; /// parameter server stuff
     dynamic_reconfigure::Server<mr_planner::PlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
+    moro::Pose2D pose_estimation_;
 };
 
 #endif // PLANNER_LOCAL_NODE_H

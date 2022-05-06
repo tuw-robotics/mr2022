@@ -22,32 +22,97 @@ void Planner::init() {
 }
 
 
-void Planner::ai() {
+void Planner::ai(Pose2D world_pos) {
     switch (config_.mode) {
         case STOP:
             cmd_.set(0, 0);
             break;
         case STRAIGHT:
-            straight();
+            straight(world_pos);
             break;
         case STRAIGHT_AVOID:
-            straightAvoid();
+            straightAvoid(world_pos);
             break;
         case PATH:
-            path();
+            path(world_pos);
             break;
     }
     loop_count_++;
 }
 
-void Planner::straight(){
+void Planner::straight(Pose2D world_pos){
+    float v =0;
+    float w =0; 
+    Point2D goal_vector;
+    
+    switch (action_state_){
+        case (NA):
+        break;
+        case (INIT):
+            goal_vector = Point2D(goal_.get_x() - start_.get_y(), goal_.get_x() - start_.get_y());
+            subgoal_rotation_ = goal_vector.angle();
+
+            action_state_ = ROTATION;
+        break;
+        case (FORWARD):
+
+            //P control for w (should be ~0) and v.
+            w = 0.1*(subgoal_rotation_-world_pos.get_theta());
+            goal_vector = Point2D(goal_.get_x() - start_.get_y(), goal_.get_x() - start_.get_y());
+            v = 0.1*goal_vector.radius();
+
+            //Limit v.
+            if(v>0.5) v = 0.5;
+
+            //If the current angle of travel differs more than PI/2 from initial angle we probably overshot - inverse commands.
+            if(abs(goal_vector.angle()-subgoal_rotation_)>CV_PI/2){
+                v = -v;
+                w = -w;
+            }
+
+            //Small motion command <-> small error to goal.
+            //If small enough, we are at final goal. Start rotating towards final position.
+            if(abs(v)<0.0001){
+                subgoal_rotation_ = goal_.get_theta();
+                action_state_ == FINAL_ROTATION;
+            }
+        break;
+        case (ROTATION):
+            //P control for w
+            w = 0.1*(subgoal_rotation_-world_pos.get_theta());
+            
+            //Limit turn signal
+            if(w>0.5) w = 0.5;
+            if(w<-0.5) w = -0.5;
+
+            //Small w <-> small error to rotation goal.
+            //If small enough, start moving towards position goal.
+            if(abs(w)<0.0001){
+                action_state_ = FORWARD;
+            }
+        break;
+        case (FINAL_ROTATION):
+            //P control for w.
+            w = 0.1*(subgoal_rotation_-world_pos.get_theta());
+            
+            //Limit turn signal
+            if(w>0.5) w = 0.5;
+            if(w<-0.5) w = -0.5;
+
+            if(abs(w)<0.0001){
+                //Close enough to goal, finish.
+                action_state_ = NA;
+            }
+        break;
+
+    }
+    cmd_.set(v, w);
+}
+
+void Planner::straightAvoid(Pose2D world_pos){
 
 }
 
-void Planner::straightAvoid(){
-
-}
-
-void Planner::path(){
+void Planner::path(Pose2D world_pos){
 
 }
