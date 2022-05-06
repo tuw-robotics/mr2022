@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseArray.h>
+#include <geometry_msgs/Quaternion.h>
 #include <nav_msgs/OccupancyGrid.h>
 
 using namespace moro;
@@ -225,6 +226,7 @@ void SelfLocalizationNode::callbackInitialpose ( const geometry_msgs::PoseWithCo
     tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
     double a = yaw;
     pose_filter_->reinitialize ( Pose2D ( pose.pose.pose.position.x, pose.pose.pose.position.y, a ) );
+    ROS_INFO_STREAM("callbackInitialpose:" << pose.pose.pose.position.x << ", " << pose.pose.pose.position.y << ", " << a);
 }
 
 /**
@@ -325,15 +327,16 @@ void SelfLocalizationNode::callbackTimer(const ros::TimerEvent& event) {
     map_.info.resolution = 1. / figure_map_.scale_x(); // m/cell
     map_.info.width = figure_map_.width(); // cells
     map_.info.height = figure_map_.height(); // cells
-    map_.info.origin.position.x = - ( figure_map_.width() / 2. ) / figure_map_.scale_x(); // origin in x of the map [m]
-    map_.info.origin.position.y = - ( figure_map_.height() / 2. ) / figure_map_.scale_y(); // origin in y of the map [m]
+    map_.info.origin.position.x = -(figure_map_.width() / 2.) / figure_map_.scale_x(); // origin in x of the map [m]
+    map_.info.origin.position.y = (figure_map_.height() / 2.) / figure_map_.scale_y(); // origin in y of the map [m]
+    tf::quaternionTFToMsg(tf::createQuaternionFromYaw(-M_PI / 2.), map_.info.origin.orientation);
     map_.data.resize( 0 );
-
+    
     cv::Mat data = cv::imread(figure_map_.backgroundFileName(), cv::IMREAD_GRAYSCALE);
     // cv::imshow("background", data);
 
     for(size_t i = 0; i < figure_map_.height(); ++i) {
-        for(size_t j = 0; j < figure_map_.width(); ++j) {
+        for(size_t j = 0; j < figure_map_.height(); ++j) {
             map_.data.push_back( ( 255 - data.at<u_int8_t>( j , i ) ) / 255 * 100 );
         }
     }

@@ -4,11 +4,13 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Odometry.h>
 #include <dynamic_reconfigure/server.h>
 #include <mr_local_planner/local_planner.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+#include <tf/transform_listener.h>
 /**
  * class to cover the ros communication
  **/
@@ -29,6 +31,12 @@ private:
     void callbackConfigLocalPlanner ( mr_local_planner::LocalPlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig> reconfigureServer_; /// parameter server stuff
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
+
+    ros::Subscriber sub_move_base_simple_goal_;
+    void callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& ); 
+
+    tf::StampedTransform transform_;
+    tf::TransformListener tf_listener_;
 };
 
 #endif // PLANNER_LOCAL_NODE_H

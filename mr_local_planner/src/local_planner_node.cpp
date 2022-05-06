@@ -2,6 +2,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
 
 using namespace moro;
 int main ( int argc, char **argv ) {
@@ -64,7 +65,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    sub_goal_ = n.subscribe("/move_base_simple/goal", 10, &LocalPlannerNode::callbackGoal, this);
+    sub_goal_ = n.subscribe("goal", 10, &LocalPlannerNode::callbackGoal, this);
     sub_odom_ = n.subscribe("odom", 10, &LocalPlannerNode::callbackOdometry, this);
 #endif
 
@@ -73,6 +74,9 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
 
     reconfigureFnc_ = boost::bind ( &LocalPlannerNode::callbackConfigLocalPlanner, this,  _1, _2 );
     reconfigureServer_.setCallback ( reconfigureFnc_ );
+
+    sub_move_base_simple_goal_ = n.subscribe("/move_base_simple/goal", 10, &LocalPlannerNode::callbackMoveBaseSimpleGoal, this);
+    tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
 }
 
 void LocalPlannerNode::callbackConfigLocalPlanner ( mr_local_planner::LocalPlannerConfig &config, uint32_t level ) {
@@ -151,4 +155,8 @@ void LocalPlannerNode::publishMotion () {
     cmd.angular.z = cmd_.w();
     /// publishes motion command
     pub_cmd_.publish ( cmd );
+}
+
+void LocalPlannerNode::callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& ) {
+    ROS_INFO_STREAM("callbackMoveBaseSimpleGoal");
 }
