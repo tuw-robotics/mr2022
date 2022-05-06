@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseArray.h>
+#include <nav_msgs/OccupancyGrid.h>
 
 using namespace moro;
 
@@ -98,6 +99,12 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
 
     /// defines a publisher for the filter particles
     pub_filter_particles_ = n.advertise<geometry_msgs::PoseArray> ( "filter_particles", 1 );
+
+    /// defines a timer_ for publishing map_ once every second
+    timer_ = n.createTimer(ros::Duration(1), &SelfLocalizationNode::callbackTimer, this );
+
+    /// defines a publisher for map_
+    pub_map_ = n.advertise<nav_msgs::OccupancyGrid> ( "map", 1 );
 
     pose_.header.seq = 0;
 
@@ -309,4 +316,30 @@ void SelfLocalizationNode::publishFilterParticles() {
         pose_array_.poses.push_back(pose);
     }
     pub_filter_particles_.publish(pose_array_);
+}
+
+void SelfLocalizationNode::callbackTimer(const ros::TimerEvent& event) {
+
+    map_.header.frame_id = "map";
+    map_.header.stamp = ros::Time::now();
+    map_.info.resolution = 1. / figure_map_.scale_x(); // m/cell
+    map_.info.width = figure_map_.width(); // cells
+    map_.info.height = figure_map_.height() ; // cells
+    map_.info.origin.position.x = - ( figure_map_.width() / 2 ) / figure_map_.scale_x() ; // origin in x of the map [m]
+    map_.info.origin.position.y = - ( figure_map_.height() / 2 ) / figure_map_.scale_y() ; // origin in y of the map [m]
+    map_.data.resize(figure_map_.width() * figure_map_.height());
+
+    cv::Mat view, background, data;
+    map_.data.resize( 0 );
+    cv::cvtColor(figure_map_.background(), background, cv::COLOR_BGR2GRAY );
+    cv::cvtColor(figure_map_.view(), view, cv::COLOR_BGR2GRAY );
+    cv::addWeighted(view, .5, background, .5, .0, data);
+    
+    for(size_t i = 0; i < figure_map_.width(); ++i) {
+        for(size_t j = 0; j < figure_map_.height(); ++j) {
+            map_.data.push_back( data.at<double>( i , j ) );
+        }
+    }
+
+    pub_map_.publish(map_);
 }

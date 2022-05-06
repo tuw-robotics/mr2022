@@ -15,6 +15,7 @@
 #include <mr_self_localization/SelfLocalizationConfig.h>
 #include <mr_self_localization/self_localization.h>
 #include <tf/transform_broadcaster.h>
+#include <nav_msgs/OccupancyGrid.h>
 /**
  * class to cover the ros communication for the self-localization
  **/
@@ -56,6 +57,11 @@ private:
     
     tf::TransformBroadcaster br_;
     ros::Publisher pub_filter_particles_;
+
+    ros::Publisher pub_map_; /// publisher for map
+    ros::Timer timer_; /// timer for map publisher
+    void callbackTimer(const ros::TimerEvent& event); /// callback function for timer
+    nav_msgs::OccupancyGrid map_; /// map to be published
 };
 
 #endif // MR_NOTE_H
