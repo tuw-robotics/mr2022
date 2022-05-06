@@ -327,17 +327,14 @@ void SelfLocalizationNode::callbackTimer(const ros::TimerEvent& event) {
     map_.info.height = figure_map_.height() ; // cells
     map_.info.origin.position.x = - ( figure_map_.width() / 2 ) / figure_map_.scale_x() ; // origin in x of the map [m]
     map_.info.origin.position.y = - ( figure_map_.height() / 2 ) / figure_map_.scale_y() ; // origin in y of the map [m]
-    map_.data.resize(figure_map_.width() * figure_map_.height());
-
-    cv::Mat view, background, data;
     map_.data.resize( 0 );
-    cv::cvtColor(figure_map_.background(), background, cv::COLOR_BGR2GRAY );
-    cv::cvtColor(figure_map_.view(), view, cv::COLOR_BGR2GRAY );
-    cv::addWeighted(view, .5, background, .5, .0, data);
-    
+
+    cv::Mat data = cv::imread(figure_map_.backgroundFileName(), cv::IMREAD_GRAYSCALE);
+    // cv::imshow("background", data);
+
     for(size_t i = 0; i < figure_map_.width(); ++i) {
         for(size_t j = 0; j < figure_map_.height(); ++j) {
-            map_.data.push_back( data.at<double>( i , j ) );
+            map_.data.push_back( ( 255 - data.at<u_int8_t>( i , j ) ) / 255 * 100 );
         }
     }
 
