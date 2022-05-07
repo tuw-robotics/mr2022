@@ -88,6 +88,41 @@ void Goto::bug1() {
     /**
     * @ToDo 4.2 Simple, no Obstacle
     **/
+    if(goal_set_) {
+        double v = 0.0, w = 0.0;
+        double angle = 0;         // angle to goal
+        double dx = goal_.x() - odom_.x();
+        double dy = goal_.y() - odom_.y();
+        double dist = sqrt(pow(dx,2)+pow(dy,2));    // distance to goal
+        double angle_diff;      // difference between target angle and robot angle
+        angle = atan2(dy, dx);
+        angle_diff = moro::angle_difference(angle, odom_.theta());
+        // goal not reached: turn towards the goal and drive there
+        if(dist > 0.2) {
+            w = angle_diff/M_PI_4 * 0.5;
+            // only drive forward if looking towards the goal
+            if(abs(angle_diff) < 0.5) {
+                v = (1 - abs(angle_diff)/M_PI) * 0.8 * (min(dist, 3.0)/4 + 0.25);
+            }
+        } 
+        // goal reached, correct orientation
+        else if(abs(moro::angle_difference(goal_.theta(), odom_.theta())) > 0.1) {
+            if( moro::angle_difference(goal_.theta(), odom_.theta()) > 0) {
+                w = 0.15;
+            } else {
+                w = -0.15;
+            }
+        } 
+        // goal pose reached
+        else {
+            goal_set_ = false;
+        }
+        // cap w
+        w = min(w,0.5);
+        w = max(w,-0.5);
+        cmd_.set ( v, w );
+    }
+        
 }
 void Goto::bug2() {
     /**

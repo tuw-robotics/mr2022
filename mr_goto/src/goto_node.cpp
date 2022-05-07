@@ -54,7 +54,7 @@ GotoNode::GotoNode ( ros::NodeHandle & n )
      **/
     // sub_goal_ =
      sub_goal_ = n.subscribe("move_base_simple/goal", 1000, &GotoNode::callbackGoal, this);
-    // sub_odom_ =
+     sub_odom_ = n.subscribe("odom", 1000, &GotoNode::callbackOdometry, this);
 #endif
 
     /// defines a publisher for velocity commands
@@ -97,7 +97,8 @@ void GotoNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
     double a = yaw;
     odom_.set ( odom.pose.pose.position.x, odom.pose.pose.position.y, a );
     odom_.recompute_cached_cos_sin();
-    ROS_INFO ( "callbackOdomGoto!" );
+    //ROS_INFO ( "callbackOdomGoto!" );
+    ROS_INFO ( "odom received! %4.3f,%4.3f and %3.2f rad",  odom_.x(), odom_.y(), odom_.theta() );
 }
 
 
@@ -114,6 +115,7 @@ void GotoNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
     goal_.recompute_cached_cos_sin();
 
     start_ = odom_;
+    goal_set_ = true;
     action_state_ = ActionState::INIT;
 
     Point2D goal_local;

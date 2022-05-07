@@ -43,6 +43,7 @@ protected:
     Pose2D goal_;  /// goal pose in world coordinates
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
+    bool goal_set_ = false;
     ActionState action_state_;  /// current action state
 
     MeasurementLaser measurement_laser_;    /// laser measurements
