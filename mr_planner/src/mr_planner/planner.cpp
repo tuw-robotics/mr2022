@@ -46,6 +46,7 @@ void Planner::straight(Pose2D world_pos) {
     float w = 0;
     Point2D goal_vector;
     float dist = 0;
+    float angle = 0;
 
     switch (action_state_) {
         case (NA):
@@ -59,31 +60,19 @@ void Planner::straight(Pose2D world_pos) {
         case (FORWARD):
 
             //P control for w (should be ~0) and v.
-            w = 0.1 * (subgoal_rotation_ - world_pos.get_theta());
+            w = config_.velocity_p * (subgoal_rotation_ - world_pos.get_theta());
 
             dist = world_pos.position().distanceTo(goal_.position());
 
             v = 0.1 * dist;
 
-            std::cout << dist << std::endl;
-            
             //Limit v.
             if (v > 0.5) v = 0.5;
-
-            if(dist<0.1){
-                v = 0;
-            }
-            
-            //If the current angle of travel differs more than PI/2 from initial angle we probably overshot - inverse commands.
-            /*if (abs(goal_vector.angle() - subgoal_rotation_) > CV_PI / 2) {
-                v = -v;
-                w = -w;
-            }*/
 
             //Small motion command <-> small error to goal.
             //If small enough, we are at final goal. Start rotating towards final position.
 
-            if (abs(v) < 0.001) {
+            if (abs(dist) < config_.distance_threshold) {
                 subgoal_rotation_ = goal_.get_theta();
                 action_state_ = FINAL_ROTATION;
             }
@@ -91,7 +80,8 @@ void Planner::straight(Pose2D world_pos) {
 
         case (ROTATION):
             //P control for w
-            w = 0.2 * (subgoal_rotation_ - world_pos.get_theta());
+            angle = (subgoal_rotation_ - world_pos.get_theta());
+            w = config_.angular_velocity_p * angle;
 
             //Limit turn signal
             if (w > 0.5) w = 0.5;
@@ -99,19 +89,21 @@ void Planner::straight(Pose2D world_pos) {
 
             //Small w <-> small error to rotation goal.
             //If small enough, start moving towards position goal.
-            if (abs(w) < 0.001) {
+            if (abs(angle) < config_.angle_threshold) {
                 action_state_ = FORWARD;
             }
             break;
         case (FINAL_ROTATION):
             //P control for w.
-            w = 0.2 * (subgoal_rotation_ - world_pos.get_theta());
+
+            angle = (subgoal_rotation_ - world_pos.get_theta());
+            w = config_.angular_velocity_p * angle;
 
             //Limit turn signal
             if (w > 0.5) w = 0.5;
             if (w < -0.5) w = -0.5;
 
-            if (abs(w) < 0.001) {
+            if (abs(angle) < config_.angle_threshold) {
                 //Close enough to goal, finish.
                 action_state_ = NA;
             }
