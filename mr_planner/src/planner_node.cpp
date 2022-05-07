@@ -87,7 +87,7 @@ void PlannerNode::callbackLaser(const sensor_msgs::LaserScan &_laser) {
 void PlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal) {
     ROS_INFO ("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
 
-    goal_.set(goal.pose.position.x, goal.pose.position.y, 0);
+    goal_.set(goal.pose.position.x, goal.pose.position.y, tf::getYaw(goal.pose.orientation));
     goal_.recompute_cached_cos_sin();
 
     start_ = estimatedPose();
