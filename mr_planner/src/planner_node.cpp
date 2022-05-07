@@ -38,7 +38,7 @@ PlannerNode::PlannerNode(ros::NodeHandle &n)
 
     //Subscribes to scan for laser scans and goal for modes STRAIGHT and STRAIGHT_AVOID.
     this->sub_laser_ = n.subscribe("scan", 1000, &PlannerNode::callbackLaser, this);
-    this->sub_goal_ = n.subscribe("goal", 1000, &PlannerNode::callbackGoal, this);
+    this->sub_goal_ = n.subscribe("goal", 1, &PlannerNode::callbackGoal, this);
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
@@ -60,7 +60,7 @@ void PlannerNode::callbackConfigPlanner(mr_planner::PlannerConfig &config, uint3
 void PlannerNode::callbackLaser(const sensor_msgs::LaserScan &_laser) {
 
     std::string ns = this->n_.getNamespace().substr(1);
-    std::string source = "base_laser_link";;
+    std::string source = "base_laser_link";
     std::string target = "base_link";
     geometry_msgs::TransformStamped scanner_transform = tf_buffer_.lookupTransform(target, source, ros::Time(0));
 
@@ -82,17 +82,16 @@ void PlannerNode::callbackLaser(const sensor_msgs::LaserScan &_laser) {
 * @ param the goal to reach in world coordinates. 
 */
 
-void PlannerNode::callbackGoal(const geometry_msgs::Pose2D &goal) {
-    goal_.set(goal.x, goal.y, goal.theta);
+void PlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal) {
+    ROS_INFO ("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+
+    goal_.set(goal.pose.position.x, goal.pose.position.y, 0);
     goal_.recompute_cached_cos_sin();
 
-    geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link", ros::Time::now(), ros::Duration(3.0));
-    
     start_ = estimatedPose();
 
     action_state_ = ActionState::INIT;
 
-    ROS_INFO ("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
 }
 
 

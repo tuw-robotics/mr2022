@@ -5,6 +5,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Odometry.h>
 #include <dynamic_reconfigure/server.h>
@@ -29,7 +30,7 @@ private:
     tf2_ros::Buffer tf_buffer_;   /// Buffer for tf2 messages
     tf2_ros::TransformListener tf_listener_;  /// Listener for tf2 messages
     void callbackLaser ( const sensor_msgs::LaserScan& );   /// callback function to execute on incoming sensor data
-    void callbackGoal ( const geometry_msgs::Pose2D& );   /// callback function to execute on incoming goal commands
+    void callbackGoal ( const geometry_msgs::PoseStamped& );   /// callback function to execute on incoming goal commands
     void callbackConfigPlanner ( mr_planner::PlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes
     dynamic_reconfigure::Server<mr_planner::PlannerConfig> reconfigureServer_; /// parameter server stuff
     dynamic_reconfigure::Server<mr_planner::PlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
