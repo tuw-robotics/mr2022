@@ -89,19 +89,19 @@ class WallFollow:
         #Topics & Subs, Pubs
         lidarscan_topic = '/base_scan'
         drive_topic = '/cmd_vel'
-        alpha_topic = '/alpha'
-        dist_topic = '/dist_left'
-        dist_lookahead_topic = '/dist_lookahead'
-        error_topic = '/err'
-        integral_topic = '/integral'
+        #alpha_topic = '/alpha'
+        #dist_topic = '/dist_left'
+        #dist_lookahead_topic = '/dist_lookahead'
+        #error_topic = '/err'
+        #integral_topic = '/integral'
 
         self.lidar_sub = rospy.Subscriber(lidarscan_topic, LaserScan, self.lidar_callback)
         self.drive_pub = rospy.Publisher(drive_topic, Twist, queue_size=10)
-        self.alpha_pub = rospy.Publisher(alpha_topic, Float64, queue_size=10)
-        self.error_pub = rospy.Publisher(error_topic, Float64, queue_size=10)
-        self.dist_left_pub = rospy.Publisher(dist_topic, Float64, queue_size=10)
-        self.dist_lookahead_pub = rospy.Publisher(dist_lookahead_topic, Float64, queue_size=10)
-        self.integral_pub = rospy.Publisher(integral_topic, Float64, queue_size=10)
+        #self.alpha_pub = rospy.Publisher(alpha_topic, Float64, queue_size=10)
+        #self.error_pub = rospy.Publisher(error_topic, Float64, queue_size=10)
+        #self.dist_left_pub = rospy.Publisher(dist_topic, Float64, queue_size=10)
+        #self.dist_lookahead_pub = rospy.Publisher(dist_lookahead_topic, Float64, queue_size=10)
+        #self.integral_pub = rospy.Publisher(integral_topic, Float64, queue_size=10)
         
     def getRange(self, data, angle):
         # data: single message from topic /scan
@@ -181,13 +181,13 @@ class WallFollow:
         self.drive_pub.publish(drive_msg)
 
         # debugging messages
-        error_msg = Float64()
-        error_msg.data = error
-        self.error_pub.publish(error_msg)
+        #error_msg = Float64()
+        #error_msg.data = error
+        #self.error_pub.publish(error_msg)
 
-        integral_msg = Float64()
-        integral_msg.data = integral
-        self.integral_pub.publish(integral_msg)
+        #integral_msg = Float64()
+        #integral_msg.data = integral
+        #self.integral_pub.publish(integral_msg)
 
     def followLeft(self, data, leftDist):
         global velocity
@@ -223,18 +223,18 @@ class WallFollow:
 
         error = dist_wall_lookahead - leftDist
        
-        # debugging messages
-        alpha_msg = Float64()
-        alpha_msg.data = alpha
-        self.alpha_pub.publish(alpha_msg)
+        ## debugging messages
+        #alpha_msg = Float64()
+        #alpha_msg.data = alpha
+        #self.alpha_pub.publish(alpha_msg)
 
-        dist_msg = Float64()
-        dist_msg.data = dist_wall
-        self.dist_left_pub.publish(dist_msg)
+        #dist_msg = Float64()
+        #dist_msg.data = dist_wall
+        #self.dist_left_pub.publish(dist_msg)
 
-        dist_lookahead_msg = Float64()
-        dist_lookahead_msg.data = dist_wall_lookahead
-        self.dist_lookahead_pub.publish(dist_lookahead_msg)
+        #dist_lookahead_msg = Float64()
+        #dist_lookahead_msg.data = dist_wall_lookahead
+        #self.dist_lookahead_pub.publish(dist_lookahead_msg)
 
         return error 
 
