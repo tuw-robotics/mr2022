@@ -14,19 +14,19 @@ DONE
 
 ### 3. Connect self-localization and planner
 
-??
+TODO: listener in mr_path_planner
 
 ### 4. Planner
 
-TODO
+TODO: listener in mr_path_planner
 
 #### 4.1 New Node
 
-DONE
+DONE: mr_goto (mode 1)
 
 #### 4.2 Simple, no Obstacle
 
-TODO: In progress by Georg
+DONE
 
 #### 4.3 Avoid obstacle
 
