@@ -21,11 +21,12 @@ int main ( int argc, char **argv ) {
 
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
-//         self_localization.publishMapToOdomTf();
-//         self_localization.publishParticles();
 
         /// plots measurements
         self_localization.plot();
+        
+        self_localization.publishParticles();
+        self_localization.publishMapToOdomTf();
 
         /// calls all callbacks waiting in the queue
         ros::spinOnce();
@@ -208,6 +209,7 @@ void SelfLocalizationNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param pose
  **/
 void SelfLocalizationNode::callbackInitialpose ( const geometry_msgs::PoseWithCovarianceStamped &pose ) {
+    ROS_INFO("Initialpose: %f | %f", pose.pose.pose.position.x, pose.pose.pose.position.y);
     tf::Quaternion q;
     tf::quaternionMsgToTF ( pose.pose.pose.orientation, q );
     double roll = 0, pitch = 0, yaw = 0;
@@ -261,7 +263,7 @@ void SelfLocalizationNode::publishPoseEstimated () {
     pub_pose_estimated_.publish ( pose_ );
 }
 
-void SelfLocalizationNode::publishMapToOdomTf() {
+/*void SelfLocalizationNode::publishMapToOdomTf() {
     tf::Stamped<tf::Pose> odom_to_map;
     try {
         tf::Transform tmp_tf(
@@ -281,9 +283,37 @@ void SelfLocalizationNode::publishMapToOdomTf() {
 
     tf_broadcaster.sendTransform(
         tf::StampedTransform(tf_odom_to_map.inverse(), ros::Time::now(), "map", "odom"));
+}*/
+/**
+ * Done4
+ * Publishes the map->odom transformation
+ **/
+void SelfLocalizationNode::publishMapToOdomTf() {
+    tf::Stamped<tf::Pose> odom_to_map;
+    try {
+        moro::Pose2D pose = pose_estimated_;
+        tf::Transform tmp_tf(
+            tf::createQuaternionFromYaw(pose.theta()),
+            tf::Vector3(pose.x(), pose.y(), 0.0));
+        tf::Stamped<tf::Pose> tmp_tf_stamped (
+            tmp_tf.inverse(), ros::Time::now(), "base_footprint");
+        tf_listener_->transformPose("odom", tmp_tf_stamped, odom_to_map);
+    } catch(tf::TransformException) {
+        //std::cout<<"failed to substract"<<std::endl;
+        ROS_DEBUG("Failed to subtract base to odom transform");
+        return;
+    }
+    
+    tf::Transform tf_odom_to_map(
+        tf::Quaternion(odom_to_map.getRotation()),
+        tf::Point(odom_to_map.getOrigin()));
+
+    tf_broadcaster.sendTransform(
+        tf::StampedTransform(tf_odom_to_map.inverse(), ros::Time::now(), "map", "odom"));
 }
 
-void SelfLocalizationNode::publishParticles() {
+
+/*void SelfLocalizationNode::publishParticles() {
     if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
     pose_array_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
     pose_array_.header.seq++;
@@ -296,6 +326,31 @@ void SelfLocalizationNode::publishParticles() {
         pose.position.y = s->y();
         pose.position.z = 0;
         pose.orientation = tf::createQuaternionMsgFromYaw(s->theta());
+        poses.push_back(pose);
+    }
+    pose_array_.poses = poses;
+    pub_particles_.publish(pose_array_);
+}*/
+/**
+ * Done4
+ * Publishes the sample particles
+ **/
+void SelfLocalizationNode::publishParticles() {
+    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
+    pose_array_.header.frame_id = "map";
+    pose_array_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
+    pose_array_.header.seq++;
+    auto particles = particle_filter_->samples;
+    std::vector<geometry_msgs::Pose> poses; 
+    moro::SamplePtr particle;
+    geometry_msgs::Pose pose;
+    for (int i = 0; i < particles.size(); i++) {
+        particle = particles[i];
+        pose = geometry_msgs::Pose();
+        pose.position.x = particle->x();
+        pose.position.y = particle->y();
+        pose.position.z = 0;
+        pose.orientation = tf::createQuaternionMsgFromYaw (particle->theta());
         poses.push_back(pose);
     }
     pose_array_.poses = poses;
