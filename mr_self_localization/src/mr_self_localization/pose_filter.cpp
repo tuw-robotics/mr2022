@@ -46,9 +46,9 @@ void PoseFilter::loadMapToPublish ( int width_pixel, int height_pixel, double mi
     map_msg_to_publish.info.width = width_pixel;
     map_msg_to_publish.info.resolution = resolution;
 
-    map_msg_to_publish.info.origin.position.x = max_x;
+    map_msg_to_publish.info.origin.position.x = -max_x;
     map_msg_to_publish.info.origin.position.y = max_y;
-    map_msg_to_publish.info.origin.orientation = tf::createQuaternionMsgFromYaw(rotation);
+    map_msg_to_publish.info.origin.orientation = tf::createQuaternionMsgFromYaw(angle_normalize(rotation + M_PI_2));
 
     map_msg_to_publish.data.clear();
     for (int r = 0; r < map.rows; r++) {
