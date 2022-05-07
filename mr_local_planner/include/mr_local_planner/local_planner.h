@@ -20,7 +20,8 @@ public:
         WANDERER2 = 3,
         BUG1 = 4,
         BUG2 = 5,
-        TANGENSBUG = 6
+        TANGENSBUG = 6,
+        WANDERER3 = 8
     };
     enum ActionState {
         NA   = 0,    /// init
@@ -56,6 +57,7 @@ protected:
     void demo();            /// Demo behavior
     void wanderer1();       /// Wanderer behavior
     void wanderer2();       /// Wanderer behavior
+    void wanderer3();       /// Wanderer behavior
     void bug1();            /// Bug1 behavior
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior

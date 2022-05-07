@@ -12,7 +12,8 @@ std::map<LocalPlanner::ControlMode, std::string> LocalPlanner::ControlModeName_ 
     {WANDERER2, "WANDERER2"},
     {BUG1, "BUG1"},
     {BUG2, "BUG2"},
-    {TANGENSBUG, "TANGENSBUG"}
+    {TANGENSBUG, "TANGENSBUG"},
+    {WANDERER3, "WANDERER3"}
 };
 
 LocalPlanner::LocalPlanner ( const std::string &ns )
@@ -93,6 +94,9 @@ void LocalPlanner::ai() {
         break;
     case WANDERER2:
         wanderer2();
+        break;
+    case WANDERER3:
+        wanderer3();
         break;
     case BUG1:
         bug1();
@@ -245,6 +249,50 @@ void LocalPlanner::wanderer2() {
     cmd_.set ( v, w );
 }
 
+
+void LocalPlanner::wanderer3() {
+    double v = 0.0, w = 0.0;
+    bool stop = false;
+    bool steer = false;
+    for (int i = 0; i < measurement_laser_.size(); i++) {
+        if (abs(measurement_laser_[i].angle) < 0.4) {
+            if (measurement_laser_[i].length < 1) {
+                stop = true;
+                break;
+            } else if (measurement_laser_[i].length < 2) {
+                steer = true;
+            }
+        }
+    }
+
+    if (stop) {
+        if (cmd_.v() == 0.5) {
+            int coinFlip = rand() % 2;
+            if (coinFlip == 1) {
+                w = 0.4;
+            } else {
+                w = -0.4;
+            }
+        } else {
+            w = cmd_.w();
+        }
+    } else if (steer) {
+        if (cmd_.v() == 0.5) {
+            int coinFlip = rand() % 2;
+            if (coinFlip == 1) {
+                w = 0.2;
+            } else {
+                w = -0.2;
+            }
+        } else {
+            w = cmd_.w();
+        }
+        v = 0.2;
+    } else {
+        v = 0.5;
+    }
+    cmd_.set(v, w);
+}
 
 void LocalPlanner::bug1() {
     /**
