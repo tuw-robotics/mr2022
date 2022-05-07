@@ -24,6 +24,10 @@ int main ( int argc, char **argv ) {
 
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
+
+        /// publishes the estimated pose
+        self_localization.broadcastEstimatedPoseAsTF();
+
         /// publishes the particles
         self_localization.publishParticles();
 
@@ -300,6 +304,21 @@ void SelfLocalizationNode::publishPoseEstimated () {
                                 "map", "odom");
     static tf::TransformBroadcaster tfb;
     tfb.sendTransform(tmp_tf_stamped);
+}
+
+
+/**
+ * Publishes the estimated pose
+ **/
+void SelfLocalizationNode::broadcastEstimatedPoseAsTF() {
+    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
+    static tf::TransformBroadcaster br;
+    tf::Transform transform;
+    transform.setOrigin( tf::Vector3(pose_estimated_.x(), pose_estimated_.y(), 0.0) );
+    tf::Quaternion q;
+    q.setRPY(0, 0, pose_estimated_.theta());
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::fromBoost(pose_filter_->time_last_update()), "map", "pose_estimated_tf"));
 }
 
 /**

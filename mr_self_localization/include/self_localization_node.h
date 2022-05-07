@@ -24,6 +24,7 @@ public:
     SelfLocalizationNode ( ros::NodeHandle & n ); /// Constructor
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
+    void broadcastEstimatedPoseAsTF ();   /// broadcastes estimated pose as tf
     void publishParticles ();
     void publishMap ();
 private:
