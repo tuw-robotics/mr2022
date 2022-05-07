@@ -5,7 +5,7 @@
   <arg name="goal" default="move_base_simple/goal" />
   <arg name="scan" default="base_scan" />
 
-  <node pkg="mr_planner" type="mr_planner_node" name="mr_planner_node" output="log">
+  <node pkg="mr_planner" type="mr_planner_node" name="mr_planner_node" output="screen">
     <remap from="goal" to="$(arg goal)" />
     <remap from="scan" to="$(arg scan)" />
   </node>

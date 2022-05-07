@@ -42,7 +42,7 @@ PlannerNode::PlannerNode(ros::NodeHandle &n)
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-    
+
     reconfigureFnc_ = boost::bind(&PlannerNode::callbackConfigPlanner, this, _1, _2);
     reconfigureServer_.setCallback(reconfigureFnc_);
 }
@@ -72,8 +72,10 @@ void PlannerNode::callbackLaser(const sensor_msgs::LaserScan &_laser) {
         measurement_laser_[i].length = _laser.ranges[i];
         measurement_laser_[i].angle = _laser.angle_min + (i * _laser.angle_increment);
 
-        double x = scanner_transform.transform.translation.x + cos(measurement_laser_[i].angle) * measurement_laser_[i].length;
-        double y = scanner_transform.transform.translation.y + sin(measurement_laser_[i].angle) * measurement_laser_[i].length;
+        double x = scanner_transform.transform.translation.x +
+                   cos(measurement_laser_[i].angle) * measurement_laser_[i].length;
+        double y = scanner_transform.transform.translation.y +
+                   sin(measurement_laser_[i].angle) * measurement_laser_[i].length;
         measurement_laser_[i].end_point.set(x, y);
     }
 }
@@ -108,20 +110,21 @@ void PlannerNode::publishMotion() {
     pub_cmd_.publish(cmd);
 }
 
-Pose2D PlannerNode::estimatedPose(){
+Pose2D PlannerNode::estimatedPose() {
     return pose_estimation_;
 }
 
-void PlannerNode::updateEstimatedPose(){
-    try{
-    geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link", ros::Time::now(), ros::Duration(3.0));
+void PlannerNode::updateEstimatedPose() {
+    try {
+        geometry_msgs::TransformStamped start_tf = this->tf_buffer_.lookupTransform("map", "base_link",
+                                                                                    ros::Time::now(),
+                                                                                    ros::Duration(3.0));
+        pose_estimation_ = Pose2D(
+                start_tf.transform.translation.x,
+                start_tf.transform.translation.y,
+                tf::getYaw(start_tf.transform.rotation));
 
-    pose_estimation_ = Pose2D(
-        start_tf.transform.translation.x,
-        start_tf.transform.translation.y,
-        start_tf.transform.rotation.z);
-    
-    }catch(tf2::TransformException &ex) {
-        ROS_WARN("%s",ex.what());
+    } catch (tf2::TransformException &ex) {
+        ROS_WARN("%s", ex.what());
     }
- }
+}
