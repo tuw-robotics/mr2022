@@ -40,13 +40,19 @@ void PoseFilter::loadMapToPublish ( int width_pixel, int height_pixel, double mi
     cv::Mat image = cv::imread ( file, cv::IMREAD_GRAYSCALE );
     cv::resize ( image, map, cv::Size ( map.cols, map.rows ), cv::INTER_AREA );
 
-    float resolution = (float) (max_x - min_x) / (float) height_pixel;
+    float resolution_from_width = (float) (max_x - min_x) / (float) width_pixel;
+    float resolution_from_height = (float) (max_y - min_y) / (float) height_pixel;
+
+    if (resolution_from_height != resolution_from_width) {
+        ROS_ERROR("Got unbalanced resolution");
+        return;
+    }
 
     map_msg_to_publish.info.height = height_pixel;
     map_msg_to_publish.info.width = width_pixel;
-    map_msg_to_publish.info.resolution = resolution;
+    map_msg_to_publish.info.resolution = resolution_from_width;
 
-    map_msg_to_publish.info.origin.position.x = -max_x;
+    map_msg_to_publish.info.origin.position.x = min_x;
     map_msg_to_publish.info.origin.position.y = max_y;
     map_msg_to_publish.info.origin.orientation = tf::createQuaternionMsgFromYaw(angle_normalize(rotation + M_PI_2));
 
