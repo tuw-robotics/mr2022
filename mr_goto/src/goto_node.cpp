@@ -13,6 +13,8 @@ int main ( int argc, char **argv ) {
     ros::Rate rate ( 10 );  /// ros loop frequency synchronized with the wall time (simulated time)
 
     while ( ros::ok() ) {
+        // reads predicted pose
+        planner.predictedPoseListener();
 
         /// calls your loop
         planner.ai();
@@ -56,6 +58,7 @@ GotoNode::GotoNode ( ros::NodeHandle & n )
      sub_goal_ = n.subscribe("move_base_simple/goal", 1000, &GotoNode::callbackGoal, this);
      sub_odom_ = n.subscribe("odom", 1000, &GotoNode::callbackOdometry, this);
 #endif
+    tf_listener_ = std::make_shared<tf::TransformListener>();
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist> ( "cmd_vel", 1 );
@@ -98,7 +101,7 @@ void GotoNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
     odom_.set ( odom.pose.pose.position.x, odom.pose.pose.position.y, a );
     odom_.recompute_cached_cos_sin();
     //ROS_INFO ( "callbackOdomGoto!" );
-    ROS_INFO ( "odom received! %4.3f,%4.3f and %3.2f rad",  odom_.x(), odom_.y(), odom_.theta() );
+    //ROS_INFO ( "odom received! %4.3f,%4.3f and %3.2f rad",  odom_.x(), odom_.y(), odom_.theta() );
 }
 
 
@@ -120,6 +123,18 @@ void GotoNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
 
     Point2D goal_local;
     ROS_INFO ( "goal received! %4.3f,%4.3f and %3.2f rad",  goal_.x(), goal_.y(), goal_.theta() );
+}
+
+void GotoNode::predictedPoseListener () {
+    tf::StampedTransform transform;
+    try {
+        tf_listener_->lookupTransform("/map", "/pose_estimated_tf", ros::Time(0), transform);
+        double roll = 0, pitch = 0, yaw = 0;
+        transform.getBasis().getRPY ( roll, pitch, yaw );
+        pred_pose_ = Pose2D ( transform.getOrigin().x(),  transform.getOrigin().y(), yaw );
+        //ROS_INFO ( "pose received! %4.3f,%4.3f and %3.2f rad",  pred_pose_.x(), pred_pose_.y(), pred_pose_.theta() );
+    } catch ( tf::TransformException ex ) {
+    }
 }
 
 

@@ -1,6 +1,7 @@
 #include "mr_goto/goto.h"
 #include <opencv2/core/core.hpp>
 #include <boost/concept_check.hpp>
+#include <tf/transform_datatypes.h>
 
 using namespace cv;
 using namespace moro;
@@ -89,14 +90,15 @@ void Goto::bug1() {
     * @ToDo 4.2 Simple, no Obstacle
     **/
     if(goal_set_) {
+        
         double v = 0.0, w = 0.0;
         double angle = 0;         // angle to goal
-        double dx = goal_.x() - odom_.x();
-        double dy = goal_.y() - odom_.y();
+        double dx = goal_.x() - pred_pose_.x();
+        double dy = goal_.y() - pred_pose_.y();
         double dist = sqrt(pow(dx,2)+pow(dy,2));    // distance to goal
         double angle_diff;      // difference between target angle and robot angle
         angle = atan2(dy, dx);
-        angle_diff = moro::angle_difference(angle, odom_.theta());
+        angle_diff = moro::angle_difference(angle, pred_pose_.theta());
         // goal not reached: turn towards the goal and drive there
         if(dist > 0.2) {
             w = angle_diff/M_PI_4 * 0.5;
@@ -106,8 +108,8 @@ void Goto::bug1() {
             }
         } 
         // goal reached, correct orientation
-        else if(abs(moro::angle_difference(goal_.theta(), odom_.theta())) > 0.1) {
-            if( moro::angle_difference(goal_.theta(), odom_.theta()) > 0) {
+        else if(abs(moro::angle_difference(goal_.theta(), pred_pose_.theta())) > 0.1) {
+            if( moro::angle_difference(goal_.theta(), pred_pose_.theta()) > 0) {
                 w = 0.15;
             } else {
                 w = -0.15;
