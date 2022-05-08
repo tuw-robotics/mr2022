@@ -111,10 +111,13 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     }
     try {
         tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
+        ROS_INFO_STREAM("tfListener: Origin:" << transform_.getOrigin().x() << ", " << transform_.getOrigin().y() << ", Rotation: " 
+        << transform_.getRotation().x() << ", " << transform_.getRotation().y() << ", " << transform_.getRotation().z() << ", " << transform_.getRotation().w());
     } catch ( tf::TransformException ex ) {
         ROS_ERROR ( "%s",ex.what() );
         ros::Duration ( 1.0 ).sleep();
     }
+    
 #endif
 }
 /**

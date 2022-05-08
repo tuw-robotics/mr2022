@@ -29,4 +29,7 @@ TODO: move goal listener to global planner
 ## 3. Connect self-localization and planner (45 Points)
 by Nino Wegleitner
 
+![](img/rqt_tf_tree.png)
+![](img/tf_listener.png)
+
 Tf from map to base_link was already broadcasted in earlier exercise. A tf listener was implemented in the local planner node (TODO: move to global planner). A stamped transformation is saved every time the laser callback function is called.
