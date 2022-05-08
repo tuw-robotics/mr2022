@@ -12,12 +12,20 @@
 
 * By: Alexander Lampalzer
 
+See commit `7b26ade4071181c515197d79556595f10e90fe6d`. To verify:
+
+```sh
+git log | grep -A 6 7b26ade4071181c515197d79556595f10e90fe6d
+```
+
 ## 1. Publish the used map. (45 Points)
 * By: Alexander Lampalzer
 
 ![](docs/map-publish.png)
 
-Self-Localization Visualization and rviz side-by-side. 
+Self-Localization Visualization and rviz side-by-side.
+
+
 
 ## 2. Initialize self-localization and trigger driving using RViz (50 Points)
 
