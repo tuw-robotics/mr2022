@@ -38,7 +38,7 @@ void LocalPlanner::init() {
      * @ToDo Wanderer
      * change the Maxima Musterfrau to your name
      **/
-    cv::putText ( figure_local_.background(), "Maxima Musterfrau",
+    cv::putText ( figure_local_.background(), "Team Red",
                   cv::Point ( figure_local_.view().cols-250, figure_local_.view().rows-10 ),
                   cv::FONT_HERSHEY_PLAIN, 1, Figure::black, 1, cv::LINE_AA );
 }
@@ -61,8 +61,9 @@ void LocalPlanner::plotLocal() {
     /**
      * @node your code
      **/
-    figure_local_.symbol ( Point2D ( 1,2 ), Figure::red ); /// Demo remove afterwards
-    figure_local_.circle ( Point2D ( 2,2 ), 2, Figure::green, 2 ); /// Demo remove afterwards
+    for(int i = 0; i < measurement_laser_.size(); ++i) {
+        figure_local_.circle(measurement_laser_[i].end_point, 2, Figure::red);
+    }
     // for in measurement_laser_ {}
 #endif
 
@@ -131,18 +132,83 @@ void LocalPlanner::demo() {
     cmd_.set ( v, w );
 }
 
+#define WANDERER_MIN_DISTANCE (2.0)
+#define WANDERER_SPEED_REGULAR (0.2)
+#define WANDERER_SPEED_AVOID (0.2)
+#define WANDERER_ANGULAR_AVOID (0.5)
+
 void LocalPlanner::wanderer1() {
     /**
     * @ToDo Wanderer
     * write one or two wanderer behaviors to keep the robot at least 120sec driving without a crash by exploring as much as possible.
     * I know it sounds weird but don't get too fancy.
     **/
+    double v = 0.0, w = 0.0;
+    if (measurement_laser_.empty()) {
+        v = 0.0, w = 0.0;
+    } else {
+
+        // check a cone in front of the laser to see if it sees a clear path still.
+
+        uint coneOffset = (uint)(measurement_laser_.size() / 16);
+        uint angleFront = (uint)(measurement_laser_.size() / 2);
+        bool stop = false;
+        for (int i = angleFront - coneOffset; i < angleFront + coneOffset; i++) {
+            if(measurement_laser_[i].length < WANDERER_MIN_DISTANCE) {
+                stop = true;
+                break;
+            }
+        }
+        w = stop ? WANDERER_ANGULAR_AVOID : 0.0;
+        v = stop ? WANDERER_SPEED_AVOID : WANDERER_SPEED_REGULAR;
+    }
+    cmd_.set(v,w);
 }
 void LocalPlanner::wanderer2() {
     /**
     * @ToDo Wanderer
     * OPTIONAL: if you like you can write another one :-)
     **/
+    double v = 0.0, w = 0.0;
+    if (measurement_laser_.empty()) {
+        v = 0.0, w = -0.1;
+    } else {
+
+        // check a cone in front of the laser to see if it sees a clear path still.
+        // equivalent to wanderer1.
+
+        uint coneOffset = (uint)(measurement_laser_.size() / 16);
+        uint angleFront = (uint)(measurement_laser_.size() / 2);
+        bool stop = false;
+        for (int i = angleFront - coneOffset; i < angleFront + coneOffset; i++) {
+            if(measurement_laser_[i].length < WANDERER_MIN_DISTANCE) {
+                stop = true;
+                break;
+            }
+        }
+        double maxLenMeasureRight = 0.0;
+        double maxLenMeasureLeft = 0.0;
+
+        // try to figure out wether the longest measured clear path is to the left or to the right
+        // of the robot.
+
+        for (int i = angleFront + coneOffset; i < measurement_laser_.size(); i++) {
+            if(measurement_laser_[i].length > maxLenMeasureRight)
+                maxLenMeasureRight = measurement_laser_[i].length;
+            // FIXME: This loop can be aborted if we see a measurement at max distance of the laser array.
+        }
+        for (int i = angleFront - coneOffset; i > 0; i--) {
+            if(measurement_laser_[i].length > maxLenMeasureLeft)
+                maxLenMeasureLeft = measurement_laser_[i].length;
+            // FIXME: This loop can be aborted if we see a measurement at max distance of the laser array.
+        }
+        w = stop ? WANDERER_ANGULAR_AVOID : 0.0;
+        v = stop ? WANDERER_SPEED_AVOID : WANDERER_SPEED_REGULAR;
+        if(stop && (maxLenMeasureLeft > maxLenMeasureRight)) {
+            w = -w;
+        }
+    }
+    cmd_.set(v,w);
 }
 
 
