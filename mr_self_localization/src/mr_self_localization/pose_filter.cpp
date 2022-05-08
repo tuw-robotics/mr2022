@@ -59,7 +59,7 @@ void PoseFilter::loadMapToPublish ( int width_pixel, int height_pixel, double mi
     map_msg_to_publish.data.clear();
     for (int r = 0; r < map.rows; r++) {
         for (int c = 0; c < map.cols; c++) {
-            auto val = map.at<uint8_t>(r, map.cols - c);
+            auto val = map.at<uint8_t>(r, map.cols - 1 - c);
             map_msg_to_publish.data.push_back(100 - round((double) val / 255 * 100));
         }
     }
