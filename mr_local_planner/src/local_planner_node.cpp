@@ -162,6 +162,10 @@ void LocalPlannerNode::publishMotion () {
     pub_cmd_.publish ( cmd );
 }
 
-void LocalPlannerNode::callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& ) {
-    ROS_INFO_STREAM("callbackMoveBaseSimpleGoal");
+void LocalPlannerNode::callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& pose) {
+    tf::Quaternion q;
+    tf::quaternionMsgToTF ( pose.pose.orientation, q );
+    double roll = 0, pitch = 0, yaw = 0;
+    tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
+    ROS_INFO_STREAM("callbackMoveBaseSimpleGoal:" << pose.pose.position.x << ", " << pose.pose.position.y << ", " << yaw);
 }
