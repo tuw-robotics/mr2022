@@ -209,7 +209,8 @@ void SelfLocalizationNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param pose
  **/
 void SelfLocalizationNode::callbackInitialpose ( const geometry_msgs::PoseWithCovarianceStamped &pose ) {
-    ROS_INFO("Initialpose: %f | %f", pose.pose.pose.position.x, pose.pose.pose.position.y);
+    // Done6
+    ROS_INFO ( "initial pose received! %4.3f,%4.3f",  pose.pose.pose.position.x, pose.pose.pose.position.y );
     tf::Quaternion q;
     tf::quaternionMsgToTF ( pose.pose.pose.orientation, q );
     double roll = 0, pitch = 0, yaw = 0;

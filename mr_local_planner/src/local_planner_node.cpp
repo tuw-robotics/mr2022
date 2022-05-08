@@ -56,7 +56,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
 
 
     /**
-     * @ToDo GoTo
+     * @Done6 GoTo
      * subscribes the fnc callbackGoal to goal and fnc callbackOdometry to odom
      **/
 #if PLANNER_EXERCISE >= 10
@@ -64,8 +64,8 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_goal_ =
-    // sub_odom_ =
+    sub_goal_ = n_.subscribe ( "move_base_simple/goal", 1, &LocalPlannerNode::callbackGoal, this );
+    sub_odom_ = n_.subscribe ( "odom", 1, &LocalPlannerNode::callbackOdometry, this );
 #endif
 
     /// defines a publisher for velocity commands
@@ -123,6 +123,7 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
     double a = yaw;
     odom_.set ( odom.pose.pose.position.x, odom.pose.pose.position.y, a );
     odom_.recompute_cached_cos_sin();
+    //ROS_INFO ( "odom received! %4.3f,%4.3f",  odom_.x(), odom_.y() );
 }
 
 
@@ -130,15 +131,23 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * copies incoming pose messages to the base class
  * @param odom
  **/
-void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
-    goal_.set ( goal.x, goal.y, goal.theta );
+void LocalPlannerNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
+    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal.pose.position.x, goal.pose.position.y );
+     tf::Quaternion q;
+    tf::quaternionMsgToTF ( goal.pose.orientation, q );
+    double roll = 0, pitch = 0, yaw = 0;
+    tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
+    double a = yaw;
+    goal_.set(goal.pose.position.x, goal.pose.position.y, a);    
+    
+    //goal_.set ( goal.x, goal.y, goal.theta );
     goal_.recompute_cached_cos_sin();
 
     start_ = odom_;
     action_state_ = ActionState::INIT;
 
     Point2D goal_local;
-    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    //ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
 }
 
 
