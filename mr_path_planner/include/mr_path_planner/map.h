@@ -52,7 +52,10 @@ namespace moro {
 
             void* xyToNode( int x, int y )
             {
-                return (void*) ( y*width_ + x );
+                // this cast is quite ugly and might not be compliant with systems 
+                // where sizeof(int) > sizeof(void*), but unfortunately micropather
+                // expects abuses void pointers instead of using some safer alternative
+                return reinterpret_cast<void*>(static_cast<intptr_t>( y*width_ + x ));
             };
 
             uint8_t get(int x, int y) {

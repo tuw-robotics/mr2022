@@ -74,10 +74,10 @@ void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
 void PathPlannerNode::initMapAndPather() {
     MapOptions options_ = {
         config_.map_scale, // scale
-        config_.map_blur_iter, // blur iterations
-        config_.map_blur_size, // blur filter size
+        static_cast<uint8_t>(config_.map_blur_iter), // blur iterations
+        static_cast<uint8_t>(config_.map_blur_size), // blur filter size
         config_.diagonal_move, // diagonal paths
-        config_.occupancy_thres // occupancy threshold (0-255)
+        static_cast<uint8_t>(config_.occupancy_thres) // occupancy threshold (0-255)
     };
     astar_map_ = std::make_shared<Map>(map_, options_);
     micropather_ = std::make_shared<micropather::MicroPather>(astar_map_.get());
@@ -108,32 +108,40 @@ void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
 
 void PathPlannerNode::findPath() {
     if(goal_set_) {
-        micropather::MPVector< void* > path;
-        float totalCost = 0;
-        void* startState = astar_map_->worldToNode(pose_estimated_);
-        void* endState = astar_map_->worldToNode(goal_);
-        int result = micropather_->Solve( startState, endState, &path, &totalCost );
+        double dx = goal_.x() - pose_estimated_.x();
+        double dy = goal_.y() - pose_estimated_.y();
+        double dist = sqrt(pow(dx,2)+pow(dy,2));    // distance to goal
 
-        path_.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
-        path_.header.seq++;
-        path_.header.frame_id = "map";
-        path_.poses.clear();
+        if(dist > 0.2) {
+            micropather::MPVector< void* > path;
+            float totalCost = 0;
+            void* startState = astar_map_->worldToNode(pose_estimated_);
+            void* endState = astar_map_->worldToNode(goal_);
+            int result = micropather_->Solve( startState, endState, &path, &totalCost );
 
-        ROS_INFO("Found path to goal! Total cost: %f", totalCost);
-        for (int i = 0; i < path.size(); i++) {
-            auto pointWorld = astar_map_->nodeToWorld(path[i]);
-            ROS_INFO("Step %d in path: (%f,%f)", i, pointWorld.get_x(), pointWorld.get_y());
-            geometry_msgs::PoseStamped pose;
-            pose.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
-            pose.header.frame_id = "map";
-            pose.pose.position.x = pointWorld.get_x();
-            pose.pose.position.y = pointWorld.get_y();
-            pose.pose.position.z = 0;
-            pose.pose.orientation = tf::createQuaternionMsgFromYaw ( 0 );
-            path_.poses.push_back(pose);
-        }
+            path_.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
+            path_.header.seq++;
+            path_.header.frame_id = "map";
+            path_.poses.clear();
 
-        pub_path_.publish(path_);
+            ROS_INFO("Found path to goal! Total cost: %f", totalCost);
+            for (int i = 0; i < path.size(); i++) {
+                auto pointWorld = astar_map_->nodeToWorld(path[i]);
+                ROS_INFO("Step %d in path: (%f,%f)", i, pointWorld.get_x(), pointWorld.get_y());
+                geometry_msgs::PoseStamped pose;
+                pose.header.stamp.fromBoost(boost::posix_time::second_clock::universal_time());
+                pose.header.frame_id = "map";
+                pose.pose.position.x = pointWorld.get_x();
+                pose.pose.position.y = pointWorld.get_y();
+                pose.pose.position.z = 0;
+                pose.pose.orientation = tf::createQuaternionMsgFromYaw ( 0 );
+                path_.poses.push_back(pose);
+            }
+
+            pub_path_.publish(path_);
+        } else {
+            goal_set_ = false;
+        }        
     }
 }
 
