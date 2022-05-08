@@ -156,9 +156,7 @@ void SelfLocalizationNode::callbackLaser ( const sensor_msgs::LaserScan &_laser 
         /**
          * @node your code
          **/
-        transform.setRotation ( tf::Quaternion ( 0,0,0,1 ) );    /// Dummy to remove
-        transform.setOrigin ( tf::Vector3 ( 1,0,0 ) );           /// Dummy to remove
-        // tf_listener_-> .....
+        tf_listener_->lookupTransform("/base_link", _laser.header.frame_id,  ros::Time(0), transform);
 #endif
         double roll = 0, pitch = 0, yaw = 0;
         transform.getBasis().getRPY ( roll, pitch, yaw );
