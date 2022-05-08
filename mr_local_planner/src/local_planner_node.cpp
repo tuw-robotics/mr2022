@@ -52,6 +52,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
      * @node your code
      **/
     // sub_laser_ =
+    sub_laser_ = n_.subscribe("scan", 1000, &LocalPlannerNode::callbackLaser, this);
 #endif
 
 
@@ -98,14 +99,20 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     /**
      * @node your code
      **/
-    //measurement_laser_.range_max() =0;  /// @ToDo
-    //measurement_laser_.range_min() = 0; /// @ToDo
-    //measurement_laser_.resize ( 0 ); /// @ToDo
-    //for ( ....
-    /// measurement_laser_ [i].length  =
-    /// measurement_laser_ [i].angle  =
-    /// measurement_laser_ [i].end_point  =
-    //}
+    measurement_laser_.range_max() = _laser.range_max;
+    measurement_laser_.range_min() = _laser.range_min;
+    measurement_laser_.resize(_laser.ranges.size());
+
+    for ( int i = 0; i < measurement_laser_.size(); i++ ) {
+        measurement_laser_ [i].length  = _laser.ranges[i];
+        measurement_laser_ [i].angle  = _laser.angle_min + i*_laser.angle_increment;
+        // The assignment mentions the laser to be mounted 22cm in front of the robot, no rotation.
+        // The sensor-to-robot rotation matrix is omitted.
+        double robotX = cos(measurement_laser_[i].angle) * measurement_laser_[i].length + .22f;
+        double robotY = sin(measurement_laser_[i].angle) * measurement_laser_[i].length;
+        Polar2D polar(measurement_laser_ [i].angle, measurement_laser_ [i].length);
+        measurement_laser_ [i].end_point = Point2D(robotX, robotY);
+    }
 #endif
 }
 /**
