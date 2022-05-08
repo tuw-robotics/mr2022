@@ -3,6 +3,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
 #include <boost/filesystem.hpp>
+#include <nav_msgs/OccupancyGrid.h>
 
 using namespace moro;
 
@@ -12,7 +13,9 @@ int main ( int argc, char **argv ) {
     ros::NodeHandle n;
     SelfLocalizationNode self_localization ( n );
     self_localization.init();
-    ros::Rate rate ( 10 );
+    ros::Rate rate ( 10 ); // We will spin our callbacks with f=10Hz
+
+    int mapDelayCount = 0;
 
     while ( ros::ok() ) {
 
@@ -24,6 +27,13 @@ int main ( int argc, char **argv ) {
 
         /// plots measurements
         self_localization.plot();
+
+        if (mapDelayCount == 10) {
+            mapDelayCount = 0;
+            self_localization.publishMap();
+        } else {
+            mapDelayCount++;
+        }
 
         /// calls all callbacks waiting in the queue
         ros::spinOnce();
@@ -87,8 +97,10 @@ SelfLocalizationNode::SelfLocalizationNode ( ros::NodeHandle & n )
 
     /// defines a publisher for the resulting pose
     pub_pose_estimated_ = n.advertise<geometry_msgs::PoseWithCovarianceStamped> ( "pose_estimated", 1 );
+    pub_map_ = n.advertise<nav_msgs::OccupancyGrid> ( "map", 1 );
 
     pose_.header.seq = 0;
+    map_seq_idx_ = 0;
 
     /// start parameter server
     reconfigureFncSelfLocalization_ = boost::bind ( &SelfLocalizationNode::callbackConfigSelfLocalization, this,  _1, _2 );
@@ -248,4 +260,48 @@ void SelfLocalizationNode::publishPoseEstimated () {
     for ( double &d : pose_.pose.covariance ) d = 0;
     /// publishes motion command
     pub_pose_estimated_.publish ( pose_ );
+}
+
+void SelfLocalizationNode::publishMap () {
+    ROS_INFO ( "publishMap!" );
+    nav_msgs::OccupancyGrid mapMessage;
+    geometry_msgs::Pose originPose;
+
+    int width = figure_map_.width();
+    int height = figure_map_.height();
+    double sx = figure_map_.scale_x();
+    double sy = figure_map_.scale_y();
+
+    ros::Time stamp = ros::Time::now();
+
+    originPose.position.x = -(width / 2 / sx);
+    originPose.position.y = -(height / 2 / sy);
+
+    mapMessage.header.stamp = stamp;
+    mapMessage.header.seq = map_seq_idx_;
+    mapMessage.header.frame_id = "map";
+
+    map_seq_idx_++;
+
+    mapMessage.info.map_load_time = stamp; // FIXME: Check if this is the correct value to publish
+    mapMessage.info.origin = originPose;
+    mapMessage.info.width = width;
+    mapMessage.info.height = height;
+    mapMessage.info.resolution = 1/sx;
+
+    // calculate occupancy matrix
+    // The map data, in row-major order, starting with (0,0).  Occupancy
+    // probabilities are in the range [0,100].  Unknown is -1.
+
+    // load greyscale image
+
+    cv::Mat imageGray = cv::imread(filename_map_image_, cv::IMREAD_GRAYSCALE);
+    cv::Mat matData;
+    cv::threshold(imageGray, matData, 100, 100, cv::THRESH_BINARY_INV); // NOTE: We expect the map to be black/white
+    cv::Mat flattened = matData.reshape(1, matData.total());
+    std::vector<int8_t> vecData = flattened.clone();
+
+    mapMessage.data = vecData;
+
+    pub_map_.publish(mapMessage);
 }
