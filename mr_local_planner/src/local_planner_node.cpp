@@ -113,6 +113,8 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
         Polar2D polar(measurement_laser_ [i].angle, measurement_laser_ [i].length);
         measurement_laser_ [i].end_point = Point2D(robotX, robotY);
     }
+
+    
 #endif
 }
 /**
