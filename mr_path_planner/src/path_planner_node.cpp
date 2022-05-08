@@ -24,17 +24,7 @@ int main(int argc, char **argv)
         path_planner.updatePoseEstimate();
 
         path_planner.findPath();
-        // /// localization
-        // self_localization.localization();
-
-        // /// publishes the estimated pose
-        // self_localization.publishPoseEstimated();
-        // /// publishes the particles
-        // self_localization.publishParticles();
-
-        // /// plots measurements
-        // self_localization.plot();
-
+        
         /// calls all callbacks waiting in the queue
         ros::spinOnce();
 
@@ -49,7 +39,7 @@ PathPlannerNode::PathPlannerNode(ros::NodeHandle &n) : n_(n), n_param_("~")
     tf_listener_ = std::make_shared<tf::TransformListener>();
     sub_map_ = n.subscribe("map", 1, &PathPlannerNode::callbackMap, this);
     sub_goal_ = n.subscribe("move_base_simple/goal", 1, &PathPlannerNode::callbackGoal, this);
-    sub_pose_estimated_ = n.subscribe("pose_estimated", 1, &PathPlannerNode::callbackPoseEstimated, this);
+    // sub_pose_estimated_ = n.subscribe("pose_estimated", 1, &PathPlannerNode::callbackPoseEstimated, this);
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     pub_path_ = n.advertise<nav_msgs::Path>("nav_path", 1);
 
@@ -66,14 +56,22 @@ void PathPlannerNode::callbackConfigPathPlanner ( mr_path_planner::PathPlannerCo
 
 void PathPlannerNode::init() {
     if(astar_map_ != nullptr) {
-        callbackMap(map_);
+        initMapAndPather();
     }
 }
 
 void PathPlannerNode::callbackMap(const nav_msgs::OccupancyGrid &map)
 {
-    ROS_INFO("callbackMap!");
-    map_ = map;
+    if (map_.data != map.data || map_.info.height != map.info.height ||
+        map_.info.width != map.info.width || map_.info.resolution != map.info.resolution ||
+        map_.info.origin != map.info.origin) {
+            ROS_INFO("callbackMap!");
+            map_ = map;
+            initMapAndPather();
+        }
+}
+
+void PathPlannerNode::initMapAndPather() {
     MapOptions options_ = {
         config_.map_scale, // scale
         config_.map_blur_iter, // blur iterations
@@ -97,16 +95,16 @@ void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
     ROS_INFO("(%f,%f,%f)", goal_.get_x(), goal_.get_y(), goal_.get_theta());
 }
 
-void PathPlannerNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &poseEstimated)
-{
-    ROS_INFO("callbackPoseEstimated!");
-    tf::Quaternion q;
-    tf::quaternionMsgToTF(poseEstimated.pose.pose.orientation, q);
-    double roll = 0, pitch = 0, yaw = 0;
-    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    pose_estimated_ = Pose2D(poseEstimated.pose.pose.position.x, poseEstimated.pose.pose.position.y, yaw);
-    ROS_INFO("(%f,%f,%f)", pose_estimated_.get_x(), pose_estimated_.get_y(), pose_estimated_.get_theta());
-}
+// void PathPlannerNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &poseEstimated)
+// {
+//     ROS_INFO("callbackPoseEstimated!");
+//     tf::Quaternion q;
+//     tf::quaternionMsgToTF(poseEstimated.pose.pose.orientation, q);
+//     double roll = 0, pitch = 0, yaw = 0;
+//     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+//     pose_estimated_ = Pose2D(poseEstimated.pose.pose.position.x, poseEstimated.pose.pose.position.y, yaw);
+//     ROS_INFO("(%f,%f,%f)", pose_estimated_.get_x(), pose_estimated_.get_y(), pose_estimated_.get_theta());
+// }
 
 void PathPlannerNode::findPath() {
     if(goal_set_) {
@@ -141,17 +139,12 @@ void PathPlannerNode::findPath() {
 
 void PathPlannerNode::updatePoseEstimate()
 {
-    // tf::StampedTransform transform;
-    // try
-    // {
-    //     tf_listener_->lookupTransform("/odom", "/base_link", ros::Time(0), transform);
-    //     double roll = 0, pitch = 0, yaw = 0;
-    //     transform.getBasis().getRPY(roll, pitch, yaw);
-    //     pose_estimate_ = Pose2D(transform.getOrigin().x(), transform.getOrigin().y(), yaw);
-    // }
-    // catch (tf::TransformException ex)
-    // {
-    //     ROS_ERROR("%s", ex.what());
-    //     ros::Duration(1.0).sleep();
-    // }
+    tf::StampedTransform transform;
+    try {
+        tf_listener_->lookupTransform("/map", "/pose_estimated_tf", ros::Time(0), transform);
+        double roll = 0, pitch = 0, yaw = 0;
+        transform.getBasis().getRPY ( roll, pitch, yaw );
+        pose_estimated_ = Pose2D ( transform.getOrigin().x(),  transform.getOrigin().y(), yaw );
+    } catch ( tf::TransformException ex ) {
+    }
 }

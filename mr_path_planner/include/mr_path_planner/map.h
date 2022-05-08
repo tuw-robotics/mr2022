@@ -38,6 +38,7 @@ namespace moro {
             float resolution_;
             float origin_x_;
             float origin_y_;
+            double rotation_;
             int width_;
             int height_;
             bool allow_diagonal_movement_;

@@ -1,5 +1,7 @@
 #include "mr_path_planner/map.h"
 #include <math.h>
+#include <tf/transform_datatypes.h>
+
 
 namespace moro {
 
@@ -17,31 +19,47 @@ namespace moro {
 
         cv::Mat source_image (cv::Size(map_data.info.width, map_data.info.height), CV_8UC1, pixel_brightness.data());
 
-        cv::Mat scaled_image;
-        if(options.scale_factor != 1) {
-            int scale_width = source_image.size().width / options.scale_factor;
-            int scale_height = source_image.size().height / options.scale_factor;
+        tf::Quaternion q;
+        tf::quaternionMsgToTF(map_data.info.origin.orientation, q);
+        double roll = 0, pitch = 0, yaw = 0;
+        tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
-            cv::resize(source_image, scaled_image, cv::Size(scale_width, scale_height), cv::INTER_LINEAR);
+        cv::Mat rotated_image;
+        double epsilon = 0.0001;
+        if(abs(yaw - M_PI) < epsilon) {
+            cv::rotate(source_image, rotated_image, cv::ROTATE_180);
+            origin_x_ = map_data.info.origin.position.x - map_data.info.width * map_data.info.resolution;
+            origin_y_ = map_data.info.origin.position.y - map_data.info.height * map_data.info.resolution;
         } else {
-            scaled_image = source_image;
+            rotated_image = source_image;
+            origin_x_ = map_data.info.origin.position.x;
+            origin_y_ = map_data.info.origin.position.y;
         }
 
-        cv::Mat blurred_image = scaled_image;
+        cv::Mat blurred_image = rotated_image;
         if(options.blur_iterations > 0) {
             for(int b = 0; b < options.blur_iterations; b++) {
-                cv::Mat blurred_image_intermediary;
+                cv::Mat blurred_image_intermediary, normalized_image_intermediary;
                 cv::GaussianBlur(blurred_image, blurred_image_intermediary, cv::Size(options.blur_size,options.blur_size), 0);
-                blurred_image = blurred_image_intermediary;
+                cv::normalize(blurred_image_intermediary, normalized_image_intermediary, 255, 0, cv::NORM_MINMAX);
+                blurred_image = normalized_image_intermediary;
             }
         }
 
-        cv::imwrite("blub.jpg", blurred_image);
-        map_ = blurred_image.clone();
+        cv::Mat scaled_image;
+        if(options.scale_factor != 1) {
+            int scale_width = blurred_image.size().width / options.scale_factor;
+            int scale_height = blurred_image.size().height / options.scale_factor;
+
+            cv::resize(blurred_image, scaled_image, cv::Size(scale_width, scale_height), cv::INTER_LINEAR);
+        } else {
+            scaled_image = blurred_image;
+        }
+
+        cv::imwrite("blub.jpg", scaled_image);
+        map_ = scaled_image.clone();
         width_ = map_data.info.width / options.scale_factor;
         height_ = map_data.info.height / options.scale_factor;
-        origin_x_ = map_data.info.origin.position.x;
-        origin_y_ = map_data.info.origin.position.y;
         resolution_ = map_data.info.resolution * options.scale_factor;
         occupancy_theshold_ = options.occupancy_threshold;
         allow_diagonal_movement_ = options.allow_diagonal_movement;
