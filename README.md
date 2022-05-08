@@ -4,9 +4,13 @@
 * Alexander Lampalzer
 * Erik Lundell
 
-TEMP
-
 # Tasks
+
+## 0. Documentation
+
+### 0.1 Git Merge
+
+* By: Alexander Lampalzer
 
 ## 1. Publish the used map. (45 Points)
 * By: Alexander Lampalzer
@@ -98,3 +102,22 @@ rosrun mr_global_planner mr_global_planner_node
 ```
 
 Use the tool "2D Nav Goal" in rviz to specify a target for the global plan. The results will then be published at `/global_planner/costmap` and `/global_planner/path`.
+
+# Scoring
+
+## Overall
+
+| Exercise                        | Points | Author              |
+| ------------------------------- | ------ | ------------------- |
+| 0. Git Merge                    | 20     | Alexander Lampalzer |
+| 1. Map                          | 45     | Alexander Lampalzer |
+| 2.1 Planner Goal                | 25     | Erik Lundell        |
+| 2.2 initialpose                 | 25     | Alexander Lampalzer |
+| 3. Localization & Planner TF    | 45     | Both                |
+| 4.0.1 Planner self-localization | 20     | Erik Lundell        |
+| 4.0.2 Planner Rviz              | 20     | Erik Lundell        |
+| 4.1 New Planner Node            | 50     | Erik Lundell        |
+| 4.2 Simple, no Obstacle         | 50     | Erik Lundell        |
+| 4.4 Plan Publishing             | 50     | Alexander Lampalzer |
+| ------------------------------- | ------ | ------------------- |
+| Overall                         | 350    |                     |
