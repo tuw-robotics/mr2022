@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="map_scale" default="4" />
+  <arg name="map_blur_iter" default="30"/>
+  <arg name="map_blur_size" default="11" />
+  <arg name="diagonal_move" default="true"/>
+  <arg name="occupancy_thres" default="220"/>
+
+  <node pkg="mr_path_planner" type="mr_path_planner_node" name="path_planner" output="screen">
+    <param name="map_scale" value="$(arg map_scale)" />
+    <param name="map_blur_iter" value="$(arg map_blur_iter)"/>
+    <param name="map_blur_size" value="$(arg map_blur_size)" />
+    <param name="diagonal_move" value="$(arg diagonal_move)"/>
+    <param name="occupancy_thres" value="$(arg occupancy_thres)"/>
+  </node>
+</launch>

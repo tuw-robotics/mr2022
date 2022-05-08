@@ -57,6 +57,7 @@ GotoNode::GotoNode ( ros::NodeHandle & n )
     // sub_goal_ =
      sub_goal_ = n.subscribe("move_base_simple/goal", 1000, &GotoNode::callbackGoal, this);
      sub_odom_ = n.subscribe("odom", 1000, &GotoNode::callbackOdometry, this);
+     sub_path_ = n.subscribe("nav_path", 1000, &GotoNode::callbackPath, this);
 #endif
     tf_listener_ = std::make_shared<tf::TransformListener>();
 
@@ -123,6 +124,25 @@ void GotoNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
 
     Point2D goal_local;
     ROS_INFO ( "goal received! %4.3f,%4.3f and %3.2f rad",  goal_.x(), goal_.y(), goal_.theta() );
+}
+
+void GotoNode::callbackPath (const nav_msgs::Path& path) {
+    if(path.poses.size() > 0) {
+        path_set_ = true;
+        if(path.poses.size() > config_.path_lookahead) {
+            tf::Quaternion q;
+            tf::quaternionMsgToTF ( path.poses.at(config_.path_lookahead - 1).pose.orientation, q );
+            double roll = 0, pitch = 0, yaw = 0;
+            tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
+            path_next_step_.set(path.poses.at(config_.path_lookahead - 1).pose.position.x, path.poses.at(config_.path_lookahead - 1).pose.position.y, yaw);
+            path_next_step_.recompute_cached_cos_sin();
+        } else {
+            path_next_step_ = goal_;
+        }
+    } else {
+        path_set_ = false;
+    }
+    
 }
 
 void GotoNode::predictedPoseListener () {

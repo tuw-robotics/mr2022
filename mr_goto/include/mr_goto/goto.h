@@ -44,7 +44,9 @@ protected:
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
     Pose2D pred_pose_;  /// current pose based on self_localization
+    Pose2D path_next_step_; /// next point on the path to target
     bool goal_set_ = false;
+    bool path_set_ = false;
     ActionState action_state_;  /// current action state
 
     MeasurementLaser measurement_laser_;    /// laser measurements

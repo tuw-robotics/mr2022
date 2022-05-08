@@ -2,7 +2,9 @@
 <launch>
   <arg name="world" default="cave.world" />
   <arg name="stage" default="false" />
-  <arg name="mode" default="0" />
+  <arg name="mode" default="1" />
+  <arg name="use_path" default="true"/>
+  <arg name="path_lookahead" default="5"/>
   <arg name="plot_data" default="true" />
   <group if="$(arg stage)">
     <include file="$(find stage_ros)/launch/world.launch">
@@ -11,6 +13,8 @@
   </group>
   <node pkg="mr_goto" type="mr_goto_node" name="goto" output="screen">
       <param name="mode" value="$(arg mode)" />
+      <param name="use_path" value="$(arg use_path)"/>
+      <param name="path_lookahead" value="$(arg path_lookahead)"/>
       <param name="plot_data" value="$(arg plot_data)" />
       <remap from="scan" to="base_scan" />
       <remap from="cmd_vel" to="cmd_vel" />
