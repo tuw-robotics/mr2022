@@ -22,7 +22,7 @@ The map is published once every second using a timer callback function.
 ## 2. Initialize self-localization and trigger driving using RViz (50 Points)
 by Nino Wegleitner
 
-![](img/rqt_console.png)
+![](img/debug_msg.png)
 
 TODO: move goal listener to global planner
 
