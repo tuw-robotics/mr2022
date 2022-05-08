@@ -9,7 +9,11 @@
 ## 1. Publish the used map (45 Points)
 by Nino Wegleitner
 
-![](img/map_rviz.png)  ![](img/map_rviz2.png.png)
+<p float="left">
+  <img src="img/map_rviz.png" width="auto" height="480px" />
+  <img src="img/map_rviz2.png" width="auto" height="480px" /> 
+</p>
+
 
 The map was published using a timer callback function. 
 
