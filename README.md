@@ -46,28 +46,33 @@ TODO: listen to the tf in your planner.
 ### 4.0.1 Your planner is using your self-localization (20 Points)
 
 * By: Erik Lundell
-TODO
+
+![](docs/1.2.png) ![](docs/1.1.png)
+
+The image to the left above show that the planner node is listening to the tf broadcast. Because of this, the node does not listen to the topic /pose_estimation directly. To the right is a screenshot of Rviz with a red arrow marking the self localization pose.
 
 ### 4.0.2 Your planner can be operated with Rviz (20 Points)
 
+![](docs/2.1.png) ![](docs/2.2.png)
 * By: Erik Lundell
-TODO
+The image above shows two screenshots of how the robot rotates towards the goal (the red arrow in front of the robot) and then moves towards it.
 
 ## 4.1 New Node (50 Points)
 
 * By: Erik Lundell
-TODO
+![](docs/3.png)
+
+The planner was implemented in it's own node, mr_planner. Some configurable parameters were also added as seen in the screenshot of rqt_reconfigure above. the planner is easiest run with 'roslaunch mr_launch/planner.launch'
 
 ## 4.2 Simple, no Obstacle
 
-### 4.2.1 Your vehicle can drive to a goal location and stops there. (25 Points)
+### 4.2.1 and 4.2.2 Your vehicle can drive to a goal location, stops there and turns into the correct pose. (50 Points)
 
-* By: Erik Lundell
-TODO
+![](docs/4.png)
 
-### 4.2.2 Your vehicle can drive to a goal location, stops there and turns into the correct pose. (25 Points)
+A local planner that can drive in a straight path towards a goal pose was implemented as a state machine in the planner node. The control outputs are proportional to the difference between the current pose and the goal (and capped at 0.5).  
+The screenshot shows how the robot (red arrow) has stopped and rotated to the goal pose (purple arrow). There is a small mis-alignment because the planner is configured to stop when within a 10 cm radius of the goal, however this can be changed with rqt_reconfigured as seen above. One weakness of the planner is that it does not account for overshooting the goal.
 
-* By: Erik Lundell
 TODO
 
 ## 4.3 Avoid obstacle
