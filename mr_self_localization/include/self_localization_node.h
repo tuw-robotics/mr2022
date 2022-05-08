@@ -22,17 +22,20 @@ public:
     SelfLocalizationNode ( ros::NodeHandle & n ); /// Constructor
     void localization();            /// triggers the self-localization process
     void publishPoseEstimated ();   /// publishes the estimated pose
+    void publishMap();              /// publishes the map
 private:
-    ros::NodeHandle n_;             /// node handler to the root node
-    ros::NodeHandle n_param_;       /// node handler to the current node
-    ros::Subscriber sub_cmd_;       /// Subscriber to the command measurements
-    ros::Subscriber sub_odometry_;  /// Subscriber to the odometry measurements
-    ros::Subscriber sub_laser_;     /// Subscriber to the laser measurements
-    ros::Subscriber sub_initial_pose_; /// Subscriber to receive a standard pose message for initialization (rviz)
-    ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
+    ros::NodeHandle n_;                 /// node handler to the root node
+    ros::NodeHandle n_param_;           /// node handler to the current node
+    ros::Subscriber sub_cmd_;           /// Subscriber to the command measurements
+    ros::Subscriber sub_odometry_;      /// Subscriber to the odometry measurements
+    ros::Subscriber sub_laser_;         /// Subscriber to the laser measurements
+    ros::Subscriber sub_initial_pose_;  /// Subscriber to receive a standard pose message for initialization (rviz)
+    ros::Subscriber sub_ground_truth_;  /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
+    ros::Publisher pub_map_;            /// publisher for the map
     std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
     geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
+    uint32_t map_seq_idx_;                               /// current sequence header for the published map topic
     void callbackCmd ( const geometry_msgs::Twist& ); /// callback function to catch motion commands
     void callbackOdometry ( const nav_msgs::Odometry& ); /// callback function to catch odometry messages
     void callbackGroundTruth ( const nav_msgs::Odometry& ); /// callback function to catch  ground truth pose messages
