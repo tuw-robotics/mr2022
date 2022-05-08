@@ -4,6 +4,8 @@
 * Alexander Lampalzer
 * Erik Lundell
 
+TEMP
+
 # Tasks
 
 ## 1. Publish the used map. (45 Points)
