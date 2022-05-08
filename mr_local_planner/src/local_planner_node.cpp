@@ -65,8 +65,8 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    // sub_goal_ =
-    // sub_odom_ =
+    sub_goal_ = n_.subscribe("move_base_simple/goal", 1000, &LocalPlannerNode::callbackGoal, this);
+    sub_odom_ = n_.subscribe("odom", 1000, &LocalPlannerNode::callbackOdometry, this);
 #endif
 
     /// defines a publisher for velocity commands
@@ -134,15 +134,16 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * copies incoming pose messages to the base class
  * @param odom
  **/
-void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
-    goal_.set ( goal.x, goal.y, goal.theta );
-    goal_.recompute_cached_cos_sin();
+void LocalPlannerNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
+    //goal_.set ( goal.x, goal.y, goal.theta );
+    //goal_.recompute_cached_cos_sin();
 
-    start_ = odom_;
-    action_state_ = ActionState::INIT;
+    //start_ = odom_;
+    //action_state_ = ActionState::INIT;
 
-    Point2D goal_local;
-    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    //Point2D goal_local;
+    //ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    ROS_DEBUG ( "callbackGoal!");
 }
 
 

@@ -215,6 +215,7 @@ void SelfLocalizationNode::callbackInitialpose ( const geometry_msgs::PoseWithCo
     tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
     double a = yaw;
     pose_filter_->reinitialize ( Pose2D ( pose.pose.pose.position.x, pose.pose.pose.position.y, a ) );
+    ROS_DEBUG("callbackInitialpose!");
 }
 
 
@@ -263,7 +264,6 @@ void SelfLocalizationNode::publishPoseEstimated () {
 }
 
 void SelfLocalizationNode::publishMap () {
-    ROS_INFO ( "publishMap!" );
     nav_msgs::OccupancyGrid mapMessage;
     geometry_msgs::Pose originPose;
 
