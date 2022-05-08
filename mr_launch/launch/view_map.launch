@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find mr_self_localization)/launch/ekf.launch">
+        <arg name="map" default="cave"/>    
+    </include>
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find mr_launch)/cfg/rviz/map.rviz" />
+</launch>
