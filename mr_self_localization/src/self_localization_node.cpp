@@ -76,6 +76,7 @@ SelfLocalizationNode::SelfLocalizationNode(ros::NodeHandle &n)
     }
     /// subscribes to transformations
     tf_listener_ = std::make_shared<tf::TransformListener>();
+    tf_broadcaster_ = std::make_shared<tf::TransformBroadcaster>();
 
     n_param_.param<std::string>("frame_id_map", pose_.header.frame_id, "map");
 
@@ -264,6 +265,33 @@ void SelfLocalizationNode::publishPoseEstimated() {
         d = 0;
     /// publishes motion command
     pub_pose_estimated_.publish(pose_);
+
+    // pose of robot
+    tf::Quaternion q;
+    q.setRPY(0, 0, pose_estimated_.theta());
+    tf::Transform tf_pose(q, tf::Vector3(pose_estimated_.get_x(), pose_estimated_.get_y(), 0));
+
+    // message with pose of robot
+    geometry_msgs::PoseStamped tf_pose_msg;
+    tf_pose_msg.header.frame_id = "/base_link";
+    tf_pose_msg.header.stamp = ros::Time::fromBoost(pose_filter_->time_last_update());
+    tf::poseTFToMsg(tf_pose.inverse(), tf_pose_msg.pose);
+
+    // reverse transforme
+    tf::Transform reverse_tf;
+    geometry_msgs::PoseStamped pose_reverse;
+    tf_listener_->transformPose("/odom", tf_pose_msg, pose_reverse);
+    tf::poseMsgToTF(pose_reverse.pose, reverse_tf);
+
+    // message for stamped tf
+    geometry_msgs::TransformStamped stamped_tf;
+    stamped_tf.header.frame_id = pose_.header.frame_id;
+    stamped_tf.child_frame_id = "/odom";
+    stamped_tf.header.stamp = ros::Time::fromBoost(pose_filter_->time_last_update());
+    stamped_tf.header.seq = pose_.header.seq;
+    tf::transformTFToMsg(reverse_tf.inverse(), stamped_tf.transform);
+
+    tf_broadcaster_->sendTransform(stamped_tf);
 }
 
 

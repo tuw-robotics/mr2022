@@ -15,6 +15,8 @@
 #include <mr_self_localization/KalmanFilterConfig.h>
 #include <mr_self_localization/SelfLocalizationConfig.h>
 #include <mr_self_localization/self_localization.h>
+#include <tf/transform_broadcaster.h>
+
 /**
  * class to cover the ros communication for the self-localization
  **/
@@ -36,6 +38,7 @@ class SelfLocalizationNode : public moro::SelfLocalization {
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
     ros::Publisher pub_map;
     std::shared_ptr<tf::TransformListener> tf_listener_;                        /// listener to receive transformation messages -> to get the laser pose
+    std::shared_ptr<tf::TransformBroadcaster> tf_broadcaster_;
     geometry_msgs::PoseWithCovarianceStamped pose_;                             /// pose to publish with covariance
     void callbackCmd(const geometry_msgs::Twist &);                             /// callback function to catch motion commands
     void callbackOdometry(const nav_msgs::Odometry &);                          /// callback function to catch odometry messages

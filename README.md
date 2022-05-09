@@ -16,7 +16,10 @@ Participating: Allacher, Voboril, Zehetner
 
 We can view messages in the console. To also see the debug messages, we have to change the level to debug in the configuration.
 
-## 3. Connect self-localisation and planner `[0/45]`
+## 3. Connect self-localisation and planner `[45/45]`
+Participating: Allacher
+![](documentation_imgs/ue06_3.png)
+We can see that the tf is shown in rviz.
 
 ## 4. Planner `[0/40]`
 

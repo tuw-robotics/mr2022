@@ -14,6 +14,8 @@ int main ( int argc, char **argv ) {
 
     while ( ros::ok() ) {
 
+        planner.loadLocation();
+
         /// calls your loop
         planner.ai();
 
@@ -64,8 +66,12 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
+    /// subscribes to transformations
+    tf_listener_ = std::make_shared<tf::TransformListener>();
     // sub_goal_ =
-    // sub_odom_ =
+    //sub_odom_ = n.subscribe("tf")
+    
+     //   tf_listener_ -> lookupTransform("/map", _laser.header.frame_id, ros::Time(0), transform);
 #endif
 
     /// defines a publisher for velocity commands
@@ -153,4 +159,12 @@ void LocalPlannerNode::publishMotion () {
     cmd.angular.z = cmd_.w();
     /// publishes motion command
     pub_cmd_.publish ( cmd );
+}
+
+void LocalPlannerNode::loadLocation(){
+
+    tf::StampedTransform transform;
+    if(tf_listener_ ->frameExists("/map")){
+        tf_listener_ -> lookupTransform("/map", "/odom", ros::Time(0), transform);
+    }
 }
