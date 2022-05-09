@@ -6,6 +6,14 @@
 * Andreas
 
 ## How to start
+
+### Dependencies
+```
+scipy
+scikit-image==0.17.2
+pyyaml
+```
+
 ### Basic startup
 1. `roslaunch stage_ros world.launch world:=cave.world`
 2. `roslaunch mr_launch goto.launch`
