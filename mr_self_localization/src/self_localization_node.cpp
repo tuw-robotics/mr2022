@@ -223,13 +223,13 @@ void SelfLocalizationNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param pose
  **/
 void SelfLocalizationNode::callbackInitialpose ( const geometry_msgs::PoseWithCovarianceStamped &pose ) {
-    ROS_INFO("Got initial pose");
     tf::Quaternion q;
     tf::quaternionMsgToTF ( pose.pose.pose.orientation, q );
     double roll = 0, pitch = 0, yaw = 0;
     tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
     double a = yaw;
     pose_filter_->reinitialize ( Pose2D ( pose.pose.pose.position.x, pose.pose.pose.position.y, a ) );
+    ROS_INFO("Got initial pose: (%f,%f,%f)", pose.pose.pose.position.x, pose.pose.pose.position.y, a);
 }
 
 
