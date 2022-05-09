@@ -213,10 +213,32 @@ void LocalPlanner::wanderer2() {
 
 
 void LocalPlanner::bug1() {
-    /**
-    * @ToDo Bug1
-    * use goal_, start_ and odom_
-    **/
+       
+    double v = 0.0, w = 0.0;
+    if (measurement_laser_.empty() || (goal_.x()==0 && goal_.y()==0)) {
+        v = 0.0, w = 0.0;
+    } else {
+        std::cout<<odom_.theta()<<std::endl;
+        std::cout<<goal_.theta()<<std::endl;
+        std::cout<<"------------"<<std::endl;
+        
+        if(odom_.theta()!=goal_.theta() && (((odom_.theta()<goal_.theta())&&(goal_.theta()-odom_.theta()>1))||((odom_.theta()>goal_.theta())&&(odom_.theta()-goal_.theta()>1)))){
+            if(odom_.theta()<goal_.theta())
+                w=1.0;
+            else
+                w=-1.0;
+
+        }else{
+            v = 2.0;
+            w = 0.0;
+        }
+        
+        
+    }
+    
+    cmd_.set(v,w);
+    
+    
 }
 void LocalPlanner::bug2() {
     /**
