@@ -6,7 +6,7 @@ geometry_msgs::PoseStamped goal_pose_;
 void callback_goal(const geometry_msgs::PoseStamped &goal) {
     goal_pose_ = goal;
 
-    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());    
 }
 
 int main(int argc, char **argv) {
@@ -49,11 +49,18 @@ int main(int argc, char **argv) {
 
 TargetPlannerNode::TargetPlannerNode(ros::NodeHandle &n):TargetPlanner(), n_(n), n_param_("~"){
 
-
+    pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    tf_listener_ = std::make_shared<tf::TransformListener>();
 }
 
-void moro::TargetPlanner::move(){
+void TargetPlannerNode::move(){
+    tf::StampedTransform transform;
+    if(tf_listener_ ->frameExists("/map")){
+        tf_listener_ -> lookupTransform("/map", "/odom", ros::Time(0), transform);
+        ROS_INFO("hallo");
+    }
     //TODO
+    cmd_.set(0.8, 0);
 }
 
 void TargetPlannerNode::publishMotion() {
