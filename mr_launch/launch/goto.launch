@@ -44,6 +44,7 @@
             <remap from="scan" to="base_scan" />
             <remap from="cmd_vel" to="cmd_vel" />
             <remap from="odom" to="odom" />
+            <!--remap from="odom" to="pose_estimated" /-->
         </node>
 	</group>
 </launch>
