@@ -313,23 +313,25 @@ void SelfLocalizationNode::publishMap(){
     map_msg.info.resolution = 1 / figure_map_.scale_x();
 
     // width/height are for pixels -> divide by scale
-    // y origin not negative because of rotation around x axis
     map_msg.info.origin.position.x = -( figure_map_.width() / 2 ) / figure_map_.scale_x();
-    map_msg.info.origin.position.y = ( figure_map_.height() / 2 ) / figure_map_.scale_y();
-    map_msg.info.origin.orientation.x = 1;
+    map_msg.info.origin.position.y = -( figure_map_.height() / 2 ) / figure_map_.scale_y();
 
     // Map data
     // https://stackoverflow.com/questions/56233780/convert-an-image-into-an-occupancy-grid
     cv::Mat map_gray = cv::imread( filename_map_image_, cv::IMREAD_GRAYSCALE );
     cv::Mat map_bin;
+    cv::Mat map_bin_flip;
     cv::threshold( map_gray, map_bin, 100, 100, cv::THRESH_BINARY );
 
     // Empty space is represented by max value, so "invert" values
     map_bin = 100 - map_bin;
 
+    // Flip the image around x axis since it's the wrong way around
+    cv::flip(map_bin, map_bin_flip, 0);
+
     // https://stackoverflow.com/questions/26681713/convert-mat-to-array-vector-in-opencv
     // https://stackoverflow.com/questions/33665241/is-opencv-matrix-data-guaranteed-to-be-continuous
-    cv::Mat map_flat = map_bin.reshape( 1, map_bin.total() );
+    cv::Mat map_flat = map_bin_flip.reshape( 1, map_bin_flip.total() );
     std::vector<int8_t> map_vec = map_flat.isContinuous() ? map_flat : map_flat.clone();
     map_msg.data = map_vec;
     
