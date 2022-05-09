@@ -40,7 +40,13 @@ Tf from map to base_link was already broadcasted in earlier exercise. A tf liste
 * Planner can be operated using RViz
 * see screenshot in 4.2 below
 
-## 4.1 New Node (TODO)
+## 4.1 New Node (50 Points)
+
+* Similar behaviour as in local-planner
+    * subscribe to `/odom`, `/goal` and `/move_base_simple/goal`
+    * publish to `/cmd_vel`
+* State-machine-based simple goto (as described for CPP node below)
+* `rosrun mr_goto mr_goto.py`
 
 ## 4.2 Simple, No Obstacle (50 / 50 Points)
 
