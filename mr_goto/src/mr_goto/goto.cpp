@@ -109,7 +109,7 @@ void Goto::bug1() {
         // goal not reached: turn towards the goal and drive there
         if(dist > 0.2) {
             w = angle_diff/M_PI_4 * 0.5;
-            // only drive forward if looking towards the goal
+            // only drive forward if looking towards the goal (and reduce velocity approaching the goal)
             if(abs(angle_diff) < 0.5) {
                 v = (1 - abs(angle_diff)/M_PI) * 0.8 * (min(dist, 3.0)/4 + 0.25);
             }
