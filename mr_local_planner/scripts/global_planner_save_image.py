@@ -207,6 +207,8 @@ class GlobalPlanner(object):
 #            if np.mod(a_distance,15) == 0:
             if np.mod(a_distance,self.sample_every) == 0:
                 cv = np.append(cv, [race_pos], axis=0)
+                rospy.loginfo("Add path point: {} {}".format(race_pos[0], race_pos[1]))
+                
 
             #For debugging:
             #if self.export_debug:
