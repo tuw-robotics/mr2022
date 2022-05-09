@@ -289,7 +289,7 @@ void SelfLocalizationNode::publishMap() {
     std::vector<int8_t> data(width * height, -1);
     for (int x = 0; x < width; ++x) {
         for (int y = 0; y < height; ++y) {
-            data[x * width + y] = (255 - background.at<uint8_t>(x, width - y)) * 100 / 255;
+            data[x * width + y] = (255 - background.at<uint8_t>(height - x, y)) * 100 / 255;
         }
     }
 
@@ -307,3 +307,17 @@ void SelfLocalizationNode::publishMap() {
 
     pub_map.publish(map);
 }
+
+
+/*local planer subscriber der auf debug message hört
+
+
+
+
+
+
+
+
+
+
+*/
