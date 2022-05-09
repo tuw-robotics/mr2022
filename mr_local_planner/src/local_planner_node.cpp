@@ -148,7 +148,7 @@ void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
     action_state_ = ActionState::INIT;
 
     Point2D goal_local;
-    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    ROS_INFO ( "goal received! %4.3f,%4.3f|%4.3f",  goal_.x(), goal_.y(), goal_.theta() );
 }
 
 
@@ -165,10 +165,21 @@ void LocalPlannerNode::publishMotion () {
     pub_cmd_.publish ( cmd );
 }
 
-void LocalPlannerNode::callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& pose) {
+void LocalPlannerNode::callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& goal) {
+    ROS_INFO_STREAM("callbackMoveBaseSimpleGoal");
+
+    // copied from odom_callback
     tf::Quaternion q;
-    tf::quaternionMsgToTF ( pose.pose.orientation, q );
+    tf::quaternionMsgToTF(goal.pose.orientation, q);
     double roll = 0, pitch = 0, yaw = 0;
-    tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
-    ROS_INFO_STREAM("callbackMoveBaseSimpleGoal:" << pose.pose.position.x << ", " << pose.pose.position.y << ", " << yaw);
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    double a = yaw;
+
+    goal_.set ( goal.pose.position.x, goal.pose.position.y, a );
+    goal_.recompute_cached_cos_sin();
+
+    start_ = odom_;
+    action_state_ = ActionState::INIT;
+
+    ROS_INFO("goal received (cMBSG) %4.3f,%4.3f|%4.3f",  goal_.x(), goal_.y(), goal_.theta());
 }

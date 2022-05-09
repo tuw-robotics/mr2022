@@ -1,6 +1,7 @@
 #include "mr_local_planner/local_planner.h"
 #include <opencv2/core/core.hpp>
 #include <boost/concept_check.hpp>
+#include <mr_geometry/geometry.h>
 
 using namespace cv;
 using namespace moro;
@@ -178,6 +179,26 @@ void LocalPlanner::bug1() {
     * @ToDo Bug1
     * use goal_, start_ and odom_
     **/
+    double v = 0.0, w = 0.0;
+    // Pose2d odom_to_goal = goal_ - odom_;
+    // double goal_angle = odom_to_goal.theta;
+    // double goal_dist = odom_to_goal.length;
+
+    // if ( abs(goal_angle - odom_.theta) > 0.1 ) {
+    //     w = 0.2;
+    // } else {
+    //     if ( goal_dist > 0.1 ) {
+    //         v = 0.2;
+    //     } else {
+    //         v = 0.0;
+    //     }
+    // }
+    if ( abs(goal_.get_theta() - odom_.get_theta()) > 0.1 ) {
+        w = 0.2;
+    }
+    cmd_.set ( v, w );
+    
+
 }
 void LocalPlanner::bug2() {
     /**
