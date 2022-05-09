@@ -13,13 +13,13 @@ While using the version control software `git` we used branches to develop indiv
 
 Participants: Philipp-Alexander Auer, Patrik Szabó
 
-![map_rviz](images/map_rviz.png)
+![map_rviz](images/map-rviz.png)
 
 ## 2. Initialize self-localization and trigger driving using RViz - `[50/50]`
 
 Sending messages using `ROS_DEBUG` can be e.g. seen using `rqt_console`:
 
-![debug_console](images/debug_console.png)
+![debug_console](images/debug-console.png)
 
 ## 3. Connect self-localization and planner - `[45/45]`
 
