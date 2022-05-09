@@ -11,7 +11,7 @@ int main ( int argc, char **argv ) {
     LocalPlannerNode planner ( n );
     planner.init();
     ros::Rate rate ( 10 );  /// ros loop frequency synchronized with the wall time (simulated time)
-
+    
     while ( ros::ok() ) {
 
         /// calls your loop
@@ -68,6 +68,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     sub_goal_ = n_.subscribe("move_base_simple/goal", 1000, &LocalPlannerNode::callbackGoal, this);
     sub_odom_ = n_.subscribe("odom", 1000, &LocalPlannerNode::callbackOdometry, this);
 #endif
+       
 
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist> ( "cmd_vel", 1 );
@@ -145,16 +146,17 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param odom
  **/
 void LocalPlannerNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
-    //goal_.set ( goal.x, goal.y, goal.theta );
-    //goal_.recompute_cached_cos_sin();
+    goal_.set ( goal.pose.position.x, goal.pose.position.y, goal.pose.orientation.w );
+    goal_.recompute_cached_cos_sin();
 
-    //start_ = odom_;
-    //action_state_ = ActionState::INIT;
+    start_ = odom_;
+    action_state_ = ActionState::INIT;
 
-    //Point2D goal_local;
-    //ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    Point2D goal_local;
+    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
     ROS_DEBUG ( "callbackGoal!");
 }
+
 
 
 /**
