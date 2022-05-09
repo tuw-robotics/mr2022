@@ -180,26 +180,56 @@ void LocalPlanner::bug1() {
     * use goal_, start_ and odom_
     **/
     double v = 0.0, w = 0.0;
-    // Pose2d odom_to_goal = goal_ - odom_;
-    // double goal_angle = odom_to_goal.theta;
-    // double goal_dist = odom_to_goal.length;
 
-    // if ( abs(goal_angle - odom_.theta) > 0.1 ) {
-    //     w = 0.2;
-    // } else {
-    //     if ( goal_dist > 0.1 ) {
-    //         v = 0.2;
-    //     } else {
-    //         v = 0.0;
-    //     }
-    // }
-    if ( abs(goal_.get_theta() - odom_.get_theta()) > 0.1 ) {
-        w = 0.2;
+    if ( action_state_ != ActionState::NA ) {
+
+        double goal_direction = atan2(goal_.y() - odom_.y(), goal_.x() - odom_.x());
+        double goal_distance = sqrt(pow(goal_.y() - odom_.y(), 2) + pow(goal_.x() - odom_.x(), 2));
+        double current_orientation = odom_.theta();
+        double goal_orientation = goal_.theta();
+
+        if ( action_state_ == ActionState::INIT ) {
+            ROS_INFO("goal received, start planning;)");
+            action_state_ = ActionState::TURN;
+        }
+        if ( action_state_ == ActionState::TURN ) {
+            ROS_DEBUG("Angle difference: %f", angle_difference(goal_direction, current_orientation));
+            if ( angle_difference(goal_direction, current_orientation) > 0.2 ) {
+                w = 0.2;
+            } else if ( angle_difference(goal_direction, current_orientation) < -0.2 ) {
+                w = -0.2;
+            } else {
+                ROS_INFO("goal direction reached, start driving");
+                action_state_ = ActionState::STRAIGHT;
+            }
+        }
+        if ( action_state_ == ActionState::STRAIGHT ) {
+            if (goal_distance > 0.2) {
+                v = 0.2;
+            } else {
+                ROS_INFO("goal reached, start turning");
+                action_state_ = ActionState::FINAL_ORIENTATION;
+            }
+        }
+        if ( action_state_ == ActionState::FINAL_ORIENTATION ) {
+            ROS_DEBUG("Angle difference: %f", angle_difference(goal_orientation, current_orientation));
+            if ( angle_difference(goal_orientation, current_orientation) > 0.2 ) {
+                w = 0.2;
+            } else if ( angle_difference(goal_orientation, current_orientation) < -0.2 ) {
+                w = -0.2;
+            } else {
+                ROS_INFO("goal orientation reached, goal reached");
+                action_state_ = ActionState::NA;
+            }
+        }
+
     }
+
     cmd_.set ( v, w );
     
-
 }
+
+
 void LocalPlanner::bug2() {
     /**
     * @ToDo Bug2

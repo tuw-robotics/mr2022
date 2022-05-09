@@ -29,8 +29,9 @@ public:
         TURN = 3,     /// turn to goal
         STRAIGHT = 4, 
         WALL_FOLLOW_LEFT = 5, 
-        WALL_FOLLOW_RIGHT = 6 
+        WALL_FOLLOW_RIGHT = 6,
         /// @ToDo for goto expand action state if needed
+        FINAL_ORIENTATION = 7
     };
     static std::map<ControlMode, std::string> ControlModeName_; 
     
