@@ -1,6 +1,13 @@
 #include "target_planner_node.h"
 #include "ros/ros.h"
 
+geometry_msgs::PoseStamped goal_pose_;
+
+void callback_goal(const geometry_msgs::PoseStamped &goal) {
+    goal_pose_ = goal;
+
+    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+}
 
 int main(int argc, char **argv) {
     /**
@@ -16,17 +23,17 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "target_planner");
 
     ros::NodeHandle n;
+    TargetPlannerNode planner(n);
     ros::Subscriber target_sub = n.subscribe("/move_base_simple/goal", 1000, callback_goal);
 
     ros::Rate rate(10);
 
-
     while (ros::ok()) {
         /// calls your loop
-        TargetPlannerNode::move();
+        planner.move();
 
         /// sets and publishes velocity commands
-        TargetPlannerNode::publishMotion();
+        planner.publishMotion();
 
 
         /// calls all callbacks waiting in the queue
@@ -35,17 +42,19 @@ int main(int argc, char **argv) {
         /// sleeps for the time remaining to let us hit our publish rate
         rate.sleep();
     }
-    return 0;
 
     return 0;
 }
 
-void callback_goal(const geometry_msgs::PoseStamped &goal) {
-    goal_pose_ = goal;
 
-    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+TargetPlannerNode::TargetPlannerNode(ros::NodeHandle &n):TargetPlanner(), n_(n), n_param_("~"){
+
+
 }
 
+void moro::TargetPlanner::move(){
+    //TODO
+}
 
 void TargetPlannerNode::publishMotion() {
     geometry_msgs::Twist cmd;

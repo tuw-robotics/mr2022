@@ -11,15 +11,15 @@
 /**
  * class to cover the ros communication
  **/
-class TargetPlannerNode {
+class TargetPlannerNode  : public moro::TargetPlanner {
   public:
     TargetPlannerNode(ros::NodeHandle &n); /// Constructor
     void publishMotion();                  /// publishes the motion commands
-    void move();
     void callback_goal(const geometry_msgs::PoseStamped &); /// callback function to execute on incoming goal commands
+
   private:
-    Command cmd_;
-    geometry_msgs::PoseStamped goal_pose_;
+      ros::NodeHandle n_;                                                                              /// node handler to the root node
+    ros::NodeHandle n_param_;                                                                        /// node handler to the current node
     ros::Subscriber sub_goal_; /// Subscriber to the goal in world coordinates
     ros::Publisher pub_cmd_;   /// publisher for the motion commands
 };

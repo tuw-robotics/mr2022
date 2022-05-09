@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/fvoboril/projects/catkin/mr/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/fvoboril/projects/catkin/mr/src/mr2022/mr_geometry/include/**",
+        "/home/fvoboril/projects/catkin/mr/src/mr2022/mr_local_planner/include/**",
+        "/home/fvoboril/projects/catkin/mr/src/mr2022/mr_monitor/include/**",
+        "/home/fvoboril/projects/catkin/mr/src/mr2022/mr_self_localization/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

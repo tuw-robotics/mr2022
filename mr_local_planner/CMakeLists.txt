@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mr_local_planner)
-project(mr_target_planner) #maybe this is wrong
 
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 add_definitions(-DPLANNER_EXERCISE=0)  # Zero for students
@@ -133,7 +132,7 @@ add_library(mr_local_planner
   src/${PROJECT_NAME}/local_planner.cpp
 )
 add_library(mr_target_planner
-  src/${PROJECT_NAME}/target_planner.cpp
+  src/mr_target_planner/target_planner.cpp
 )
 
 ## Add cmake target dependencies of the library
