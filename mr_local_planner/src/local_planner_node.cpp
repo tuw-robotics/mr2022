@@ -13,8 +13,18 @@ int main ( int argc, char **argv ) {
     ros::Rate rate ( 10 );  /// ros loop frequency synchronized with the wall time (simulated time)
 
     srand(time(0));
-    
+
+    tf2_ros::Buffer tf_buffer;
+    tf2_ros::TransformListener tf_listener(tf_buffer);
+
     while ( ros::ok() ) {
+
+        try {
+            auto transform = tf_buffer.lookupTransform("map", "base_link", ros::Time(0));
+            planner.updateTransform(transform);
+        } catch(tf2::TransformException& e) {
+            ROS_WARN_STREAM_THROTTLE(1, "failed to get transform from map to base_link " << e.what());
+        }
 
         /// calls your loop
         planner.ai();

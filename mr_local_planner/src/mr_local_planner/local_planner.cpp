@@ -2,6 +2,8 @@
 #include <opencv2/core/core.hpp>
 #include <boost/concept_check.hpp>
 #include <tf2/convert.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace cv;
 using namespace moro;
@@ -331,7 +333,8 @@ int LocalPlanner::getNextWaypointID(const double lookahead) {
     // find closest waypoint
     int closestID = -1;
     double minDist = 100;
-    Point2D position = odom_.position();
+    Pose2D& pose = this->transform_;
+    Point2D position = pose.position();
     for (size_t i = 0; i < path_.size(); i++) {
         Pose2D waypoint = path_[i];
         double dist = position.distanceTo(waypoint.position());
@@ -364,9 +367,9 @@ void LocalPlanner::path_tracking() {
     const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
 
     // transform selected target to robot frame
-    int closestID = getNextWaypointID(lookahead);
-    targetWaypoint_ = path_[closestID];
-    auto target_robot = odom_.tf().inv() * targetWaypoint_.position();
+    int closestId = getNextWaypointID(lookahead);
+    targetWaypoint_ = path_[closestID];     // used in visualization
+    auto target_robot = pose.tf().inv() * targetWaypoint_.position();
 
     // compute lateral control
     double steer = atan2(target_robot.y(), target_robot.x());
@@ -409,4 +412,16 @@ void LocalPlanner::final_alignment() {
     }
     // debug
     ROS_DEBUG_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
+}
+
+void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transform) {
+    transform_.set_x(new_transform.transform.translation.x);
+    transform_.set_y(new_transform.transform.translation.y);
+
+    tf2::Quaternion quat;
+    tf2::convert(new_transform.transform.rotation, quat);
+
+    double _roll, _pitch, yaw;
+    tf2::Matrix3x3(quat).getEulerYPR(yaw, _pitch, _roll);
+    transform_.set_theta(yaw);
 }
