@@ -6,6 +6,8 @@
 #include <opencv2/opencv.hpp>
 #include <mr_geometry/geometry.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2/transform_datatypes.h>
 #include <random>
 
 namespace moro {
@@ -45,6 +47,7 @@ public:
     void init();                         /// initialization
     void ai();                           /// artificial intelligence calls a behavior
     void plot();                         /// plots sensor input
+    void updateTransform(geometry_msgs::TransformStamped& new_transform);
     
 protected:
     std::random_device rd{};
@@ -55,6 +58,7 @@ protected:
     Pose2D goal_;  /// goal pose in world coordinates
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
+    Pose2D transform_; /// current transformation published by self localization using the tf tree
     std::vector<Point2D> path_;  /// path as sequence of points
     Pose2D targetWaypoint_;   /// goal waypoint (pure pursuit) in world coordinates
     ActionState action_state_;  /// current action state

@@ -15,6 +15,10 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   visualization_msgs
   tf
+  tf2
+  tf2_msgs
+  tf2_ros
+  tf2_geometry_msgs
   mr_geometry
   dynamic_reconfigure
 )
