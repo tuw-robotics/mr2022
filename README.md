@@ -33,3 +33,21 @@ by Nino Wegleitner
 ![](img/tflistener.png)
 
 Tf from map to base_link was already broadcasted in earlier exercise. A tf listener was implemented in the local planner node (TODO: move to global planner). A stamped transformation is saved every time the laser callback function is called.
+
+## 4.0 Planner (20 / 40 Points)
+
+* we are using odom_ instead of self-localisation in the planner currently
+* Planner can be operated using RViz
+* TODO: I'll upload a screenshot
+
+## 4.1 New Node (TODO)
+
+## 4.2 Simple, No Obstacle (50 / 50 Points)
+
+State Machine based simple approach:
+
+1. *INIT*: start state machine, start planning
+2. *TURN*: turn towards goal location
+3. *STRAIGTH*: drive towards goal location in a straight line
+4. *FINAL_ORIENTATION*: turn towards goal orientation
+5. *NA*: turn off local planner and remain idle
