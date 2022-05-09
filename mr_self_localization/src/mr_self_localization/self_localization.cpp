@@ -107,7 +107,7 @@ void SelfLocalization::plotMap() {
 #endif
 
     }
-    sprintf ( text, "%5lu,  <%+4.2fm, %+4.2f> Luigi Berducci", loop_count_, mouse_on_map_.x(), mouse_on_map_.y() );
+    sprintf ( text, "%5lu,  <%+4.2fm, %+4.2f> Team blue", loop_count_, mouse_on_map_.x(), mouse_on_map_.y() ); // initial version by Luigi Berducci
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::white,3, cv::LINE_AA );
     cv::putText ( figure_map_.view(), text, cv::Point ( 20,20 ), cv::FONT_HERSHEY_PLAIN, 1, Figure::black,1, cv::LINE_AA );
 

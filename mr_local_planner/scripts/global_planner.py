@@ -35,7 +35,7 @@ class GlobalPlanner(object):
         rospy.loginfo("GlobalPlanner: init")
         
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback, queue_size = 1)
-        rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
+        rospy.Subscriber('/pose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback, queue_size = 1)
         self.path_publisher = rospy.Publisher('/waypoints', Path, queue_size=1)
         
@@ -312,7 +312,7 @@ class GlobalPlanner(object):
  
 
     def initialpose_callback(self, pose_msg):
-        rospy.loginfo("GlobalPlanner: initialpose_callback received")
+        #rospy.loginfo("GlobalPlanner: initialpose_callback received")
         self.initpose = pose_msg
         #rospy.loginfo(self.initpose)
 
