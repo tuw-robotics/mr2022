@@ -317,7 +317,9 @@ void SelfLocalizationNode::publishMap () {
 
     cv::Mat imageGray = cv::imread(filename_map_image_, cv::IMREAD_GRAYSCALE);
     cv::Mat matData;
-    cv::threshold(imageGray, matData, 100, 100, cv::THRESH_BINARY_INV); // NOTE: We expect the map to be black/white
+    cv::Mat imageGrayFlipped;
+    cv::flip(imageGrayFlipped, imageGray, 1);
+    cv::threshold(imageGrayFlipped, matData, 100, 100, cv::THRESH_BINARY_INV); // NOTE: We expect the map to be black/white
     cv::Mat flattened = matData.reshape(1, matData.total());
     std::vector<int8_t> vecData = flattened.clone();
 
