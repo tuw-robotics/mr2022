@@ -3,9 +3,9 @@
     <arg name="local_planner" default="true"/>
 
     <!-- Map server just as reference -->
-    <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/line/line.yaml"> -->
-        <!-- <remap from="map" to="map_ref" /> -->
-    <!-- </node> -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/line/line.yaml">
+        <remap from="map" to="map_ref" />
+    </node>
 
     <!-- RViz with configuration to show useful topics -->
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_launch)/rviz/goto1.rviz" />  
@@ -32,8 +32,8 @@
         <param name="map_lines" value="$(find mr_self_localization)/maps/line.yml" />
     </node>
 
-
-    <node pkg="mr_local_planner" type="global_planner_mock.py" name="global_planner" output="screen" />
+    <node pkg="mr_local_planner" type="global_planner_save_image.py" name="global_planner" output="screen" />
+    <!--node pkg="mr_local_planner" type="global_planner_mock.py" name="global_planner" output="screen" /-->
 
     <group if="$(arg local_planner)">
         <node pkg="mr_local_planner" type="mr_local_planner_node" name="local_planner" output="screen">
