@@ -24,6 +24,7 @@ int main ( int argc, char **argv ) {
 
         /// publishes the estimated pose
         self_localization.publishPoseEstimated();
+       
 
         /// plots measurements
         self_localization.plot();
@@ -266,30 +267,16 @@ void SelfLocalizationNode::publishPoseEstimated () {
     pub_pose_estimated_.publish ( pose_ );
     
     
-    tf::Stamped<tf::Pose> odom_to_map;
+    tf::Stamped<tf::Pose> o2m;
 
-    tf::Transform tmp_tf(tf::createQuaternionFromYaw(pose_estimated_.get_theta()), tf::Vector3(pose_estimated_.get_x(), pose_estimated_.get_y(), 0));
-    tf::Stamped<tf::Pose> tmp_tf_stamped(tmp_tf.inverse(), ros::Time::now(), "base_footprint");
+    tf::Transform tf(tf::createQuaternionFromYaw(pose_estimated_.get_theta()), tf::Vector3(pose_estimated_.get_x(), pose_estimated_.get_y(), 0));
+    tf::Stamped<tf::Pose> b2m(tf.inverse(), ros::Time::now(), "base_link");
     
-    tf::Transform tf_map_to_base(tf::createQuaternionFromYaw(pose_estimated_.get_theta()), tf::Vector3(
-            pose_estimated_.get_x(),
-            pose_estimated_.get_y(),
-            0
-    ));
-    tf::Stamped<tf::Pose> base_to_map(tmp_tf.inverse(), ros::Time::now(), "base_footprint");
-    tf_listener_->transformPose("odom", base_to_map, odom_to_map);
+    tf_listener_->transformPose("odom", b2m, o2m);
     
-    tf::Transform odom_to_map_tf(tf::Quaternion(odom_to_map.getRotation()), tf::Point(odom_to_map.getOrigin()));
-    
-    geometry_msgs::TransformStamped map_to_odom;
-    
-    map_to_odom.header.frame_id = pose_.header.frame_id;
-    map_to_odom.child_frame_id = "odom";
-    map_to_odom.header.stamp = ros::Time::now();
-    map_to_odom.header.seq = pose_.header.seq;
-    tf::transformTFToMsg(odom_to_map_tf.inverse(), map_to_odom.transform);
+    tf::Transform tf_o2m (tf::Quaternion(o2m.getRotation()), tf::Point(o2m.getOrigin()));
 
-    tf_broadcaster_->sendTransform(map_to_odom);
+    tf_broadcaster_->sendTransform(tf::StampedTransform(tf_o2m.inverse(), ros::Time::now(), "map", "odom"));
 }
 
 void SelfLocalizationNode::publishMap () {

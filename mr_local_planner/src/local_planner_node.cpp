@@ -113,6 +113,14 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
         Polar2D polar(measurement_laser_ [i].angle, measurement_laser_ [i].length);
         measurement_laser_ [i].end_point = Point2D(robotX, robotY);
     }
+    
+    ///Listen for the latest incoming broadcast and save the transform inside tf_
+    try{
+        tf_listener_.lookupTransform("odom", "map", ros::Time(0), tf_);
+    }catch(tf::LookupException e){
+        ROS_INFO ("%s", e.what());
+    }
+
 
     
 #endif

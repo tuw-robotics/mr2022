@@ -10,6 +10,9 @@
 #include <dynamic_reconfigure/server.h>
 #include <mr_local_planner/local_planner.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+
+#include <tf/transform_listener.h>
+
 /**
  * class to cover the ros communication
  **/
@@ -30,6 +33,12 @@ private:
     void callbackConfigLocalPlanner ( mr_local_planner::LocalPlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig> reconfigureServer_; /// parameter server stuff
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
+
+    
+    /// declaration of the transform listener and the variable holding the received transform
+    tf::TransformListener tf_listener_;
+    tf::StampedTransform tf_;
+    
 };
 
 #endif // PLANNER_LOCAL_NODE_H
