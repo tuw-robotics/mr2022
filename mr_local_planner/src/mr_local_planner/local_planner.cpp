@@ -108,7 +108,7 @@ void LocalPlanner::ai() {
             tangensbug();
             break;
         case GOTO:
-            path_tracking();
+            goto_plan();
             break;
         default:
             cmd_.set(0, 0);
@@ -320,26 +320,33 @@ void LocalPlanner::tangensbug() {
     **/
 }
 
-void LocalPlanner::path_tracking() {
-    /**
-     * Geometric algorithm to track path: control steer and speed w.r.t. the closest waypoint > lookahead distance.
-     * Simple proportional control, no fancy steering (e.g., pure pursuit).
-     *
-     * use path_, odom_
-     */
-    // parameters
-    double lookahead = 1.0, maxsteer = 0.5, maxspeed = 0.8;
+void LocalPlanner::goto_plan() {
     /// wait to have a path
     if (path_.size() == 0) return;
 
+    ROS_INFO_STREAM("Mode: " << action_state_);
+    switch (action_state_) {
+        case WAIT:
+            break;
+        case TRACK:
+            path_tracking();
+            break;
+        case ALIGN:
+            final_alignment();
+            break;
+        case REPLAN:
+            break;
+    }
+}
+
+int LocalPlanner::getNextWaypointID(const double lookahead) {
     // find closest waypoint
     int closestID = -1;
     double minDist = 100;
     Point2D position = odom_.position();
-    double theta = odom_.theta();
     for (size_t i = 0; i < path_.size(); i++) {
-        Point2D waypoint = path_[i];
-        double dist = position.distanceTo(waypoint);
+        Pose2D waypoint = path_[i];
+        double dist = position.distanceTo(waypoint.position());
         if (dist < minDist) {
             minDist = dist;
             closestID = i;
@@ -347,13 +354,30 @@ void LocalPlanner::path_tracking() {
     }
     // find waypoint which is > lookahead distance from closest one
     while (minDist < lookahead && closestID < path_.size() - 1) {
-        Point2D current = path_[closestID];
-        Point2D next = path_[closestID + 1];
+        Point2D current = path_[closestID].position();
+        Point2D next = path_[closestID + 1].position();
         minDist += current.distanceTo(next);
         closestID++;
     }
+    return closestID;
+}
+
+
+void LocalPlanner::path_tracking() {
+    /**
+     * Geometric algorithm to track path: control steer and speed w.r.t. the closest waypoint > lookahead distance.
+     * Simple proportional control, no fancy steering (e.g., pure pursuit).
+     *
+     * use path_, odom_
+     *
+     */
+    // parameters
+    double lookahead=1.0, maxsteer = 0.5, maxspeed = 0.8;
+    const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
+
     // transform selected target to robot frame
-    targetWaypoint_ = path_[closestID];     // used in visualization
+    int closestID = getNextWaypointID(lookahead);
+    targetWaypoint_ = path_[closestID];
     auto target_robot = odom_.tf().inv() * targetWaypoint_.position();
 
     // compute lateral control
@@ -371,5 +395,30 @@ void LocalPlanner::path_tracking() {
         // lower speed proportional to target
         speed = maxspeed / 2 * normDist;
     }
+    // set command
     cmd_.set(speed, steer);
+    // finally, if reached the target, align with its orientation
+    if (closestID == path_.size() - 1 && speed <= zeroSpeedTolerance) {
+        action_state_ = ActionState::ALIGN;
+    }
+}
+
+void LocalPlanner::final_alignment() {
+    /// perform inplace rotation to align the robot heading to the final pose
+    /// when reach almost zero error, move to "WAIT" state
+    const double ks = 0.5;  // proportional gain
+    const double errTolerance = 0.01;
+    double speed = 0, steer = 0;
+    // compute error w.r.t. last waypoint
+    Pose2D lastWaypoint = path_[path_.size() - 1];
+    double normError = angle_normalize(angle_difference(odom_.theta(), lastWaypoint.theta())) / M_PI;
+    steer = ks * normError;
+    // set command
+    cmd_.set(speed, -steer);
+    // eventually change state
+    if (abs(steer) < errTolerance ){
+        action_state_ = ActionState::WAIT;
+    }
+    // debug
+    ROS_INFO_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
 }

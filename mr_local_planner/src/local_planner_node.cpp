@@ -161,10 +161,12 @@ void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
 void LocalPlannerNode::callbackPath(const nav_msgs::Path & path_msg) {
     path_.clear();
     for (geometry_msgs::PoseStamped pose : path_msg.poses){
-        Point2D p(pose.pose.position.x, pose.pose.position.y);
+        double yaw = tf::getYaw(pose.pose.orientation);
+        Pose2D p(pose.pose.position.x, pose.pose.position.y, yaw);
         path_.push_back(p);
     }
-    ROS_INFO_STREAM("Received path of length " << path_.size());
+    action_state_ = ActionState::TRACK;
+    ROS_INFO_STREAM("Received path of length " << path_.size() << ", mode: " << action_state_);
 }
 
 /**

@@ -23,7 +23,6 @@ public:
         BUG2 = 5,
         TANGENSBUG = 6,
         GOTO = 7
-
     };
     enum ActionState {
         NA   = 0,    /// init
@@ -35,7 +34,11 @@ public:
         WALL_FOLLOW_RIGHT = 6,
         /// @ToDo for goto expand action state if needed
         TURN_LEFT = 7,  // used in wanderer1
-        TURN_RIGHT = 8  // used in wanderer1
+        TURN_RIGHT = 8, // used in wanderer2
+        /// Custom action-states for goto
+        TRACK = 9,
+        ALIGN = 10,
+        REPLAN = 11
     };
     
     static std::map<ControlMode, std::string> ControlModeName_; 
@@ -55,7 +58,7 @@ protected:
     Pose2D goal_;  /// goal pose in world coordinates
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
-    std::vector<Point2D> path_;  /// path as sequence of points
+    std::vector<Pose2D> path_;  /// path as sequence of points
     Pose2D targetWaypoint_;   /// goal waypoint (pure pursuit) in world coordinates
     ActionState action_state_;  /// current action state
 
@@ -69,13 +72,16 @@ protected:
     void bug1();            /// Bug1 behavior
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
-    void path_tracking();    /// geometric path tracking algorithm
+    void goto_plan();            /// goto local plan
+    void path_tracking();   /// geometric path tracking algorithm
+    void final_alignment(); /// perform final rotation to align robot orientation
     void plotLocal();       /// plots sensor input in robot coordinates
     
     // Wanderer
     ros::Time rotationStart = ros::Time::now();   // when a in-place rotation started
     double rotationDuration = 0.0;          // how long the rotation should last
-    
+
+    int getNextWaypointID(const double lookahead);  // compute the next waypoint along the path
     double estimateOpenCorridor(int pivot, int nHalfRays);  // estimate if a corridor is free
     
     mr_local_planner::LocalPlannerConfig config_;
