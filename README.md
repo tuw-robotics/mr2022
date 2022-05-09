@@ -12,8 +12,8 @@
 by Nino Wegleitner
 
 the launchfiles from the line environment from exercise 5 were used:
-* roslaunch mr_local_planner planner.launch stage:=1 mode:=2 world:=line.world
-* rosrun mr_self_localization mr_self_localization_node cmd:=cmd_vel scan:=base_scan _mode:=1 _initial_with_ground_truth:=true _plot_data:=true _kalman_filter/enable_correction:=true _kalman_filter/enable_data_association:=true _kalman_filter/enable\_prediction:=true _map_image:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.png" _map_lines:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.yml"
+* `roslaunch mr_local_planner planner.launch stage:=1 mode:=2 world:=line.world`
+* `rosrun mr_self_localization mr_self_localization_node cmd:=cmd_vel scan:=base_scan _mode:=1 _initial_with_ground_truth:=true _plot_data:=true _kalman_filter/enable_correction:=true _kalman_filter/enable_data_association:=true _kalman_filter/enable\_prediction:=true _map_image:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.png" _map_lines:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.yml"`
 
 ![](img/map_rviz.png)
 
@@ -38,7 +38,7 @@ Tf from map to base_link was already broadcasted in earlier exercise. A tf liste
 
 * we are using odom_ instead of self-localisation in the planner currently
 * Planner can be operated using RViz
-* TODO: I'll upload a screenshot
+* see screenshot in 4.2 below
 
 ## 4.1 New Node (TODO)
 
@@ -51,3 +51,5 @@ State Machine based simple approach:
 3. *STRAIGTH*: drive towards goal location in a straight line
 4. *FINAL_ORIENTATION*: turn towards goal orientation
 5. *NA*: turn off local planner and remain idle
+
+![](img/planner_rviz_simple.gif)
