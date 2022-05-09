@@ -155,10 +155,10 @@ void LocalPlannerNode::publishMotion() {
     pub_cmd_.publish(cmd);
 }
 
-void LocalPlannerNode::loadLocation(){
+void LocalPlannerNode::loadLocation() {
 
     tf::StampedTransform transform;
-    if(tf_listener_ ->frameExists("/map")){
-        tf_listener_ -> lookupTransform("/map", "/odom", ros::Time(0), transform);
+    if (tf_listener_->frameExists("/map")) {
+        tf_listener_->lookupTransform("/map", "/odom", ros::Time(0), transform);
     }
 }

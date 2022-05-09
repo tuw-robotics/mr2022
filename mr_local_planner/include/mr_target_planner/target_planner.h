@@ -11,12 +11,12 @@ namespace moro {
  * Robot class
  */
 class TargetPlanner {
-    public:
-        TargetPlanner(); 
-        void move();
-    protected:
-        Command cmd_;              /// output variables  v, w
+  public:
+    TargetPlanner();
+    void move();
 
+  protected:
+    Command cmd_; /// output variables  v, w
 };
 } // namespace moro
 

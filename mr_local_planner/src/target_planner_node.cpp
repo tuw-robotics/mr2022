@@ -1,12 +1,21 @@
 #include "target_planner_node.h"
 #include "ros/ros.h"
 
-geometry_msgs::PoseStamped goal_pose_;
+geometry_msgs::Pose2D target_pose;
+geometry_msgs::Pose2D current_pose;
 
-void callback_goal(const geometry_msgs::PoseStamped &goal) {
-    goal_pose_ = goal;
+void callback_target(const geometry_msgs::PoseStamped &goal) {
+    target_pose.x = goal.pose.position.x;
+    target_pose.y = goal.pose.position.y;
+    target_pose.theta = goal.pose.orientation.w;
 
-    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());    
+    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+}
+
+void callback_pose(const geometry_msgs::PoseWithCovarianceStamped &pose) {
+    current_pose.x = pose.pose.pose.position.x;
+    current_pose.y = pose.pose.pose.position.y;
+    current_pose.theta = pose.pose.pose.orientation.w;
 }
 
 int main(int argc, char **argv) {
@@ -24,16 +33,15 @@ int main(int argc, char **argv) {
 
     ros::NodeHandle n;
     TargetPlannerNode planner(n);
-    ros::Subscriber target_sub = n.subscribe("/move_base_simple/goal", 1000, callback_goal);
+    ros::Subscriber target_sub = n.subscribe("/move_base_simple/goal", 1000, callback_target);
+    ros::Subscriber pose_sub = n.subscribe("/pose_estimated", 1000, callback_pose);
+
 
     ros::Rate rate(10);
 
     while (ros::ok()) {
         /// calls your loop
         planner.move();
-
-        /// sets and publishes velocity commands
-        planner.publishMotion();
 
 
         /// calls all callbacks waiting in the queue
@@ -47,28 +55,55 @@ int main(int argc, char **argv) {
 }
 
 
-TargetPlannerNode::TargetPlannerNode(ros::NodeHandle &n):TargetPlanner(), n_(n), n_param_("~"){
+TargetPlannerNode::TargetPlannerNode(ros::NodeHandle &n) : TargetPlanner(), n_(n), n_param_("~") {
 
     pub_cmd_ = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     tf_listener_ = std::make_shared<tf::TransformListener>();
 }
 
-void TargetPlannerNode::move(){
-    tf::StampedTransform transform;
-    if(tf_listener_ ->frameExists("/map")){
-        tf_listener_ -> lookupTransform("/map", "/odom", ros::Time(0), transform);
-        ROS_INFO("hallo");
-    }
-    //TODO
-    cmd_.set(0.8, 0);
-}
+void TargetPlannerNode::move() {
+    /*tf::StampedTransform transform;
+    if (tf_listener_->frameExists("/map")) {
+        tf_listener_->lookupTransform("/map", "/odom", ros::Time(0), transform);
+    }*/
 
-void TargetPlannerNode::publishMotion() {
+    double dx = target_pose.x - current_pose.x;
+    double dy = target_pose.y - current_pose.y;
+    double target_angle = std::atan2(dy, dx);
+    double angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_pose.theta));
+    double pos_diff = sqrt(dx * dx + dy * dy);
+
+
+    double vel = 0.0;
+    double rot = 0.0;
+    if (pos_diff >= 0.25) {
+        vel = 0.2;
+
+        std::cout << target_angle * 57.3 << " " << current_pose.theta * 57.3 << " | " << angle_diff * 57.3 << "\n";
+        if (angle_diff > 0.3) {
+            rot = 0.4;
+        } else if (angle_diff < -0.3) {
+            rot = -0.4;
+        } else if (angle_diff > 0.1) {
+            rot = 0.2;
+        } else if (angle_diff < -0.1) {
+            rot = -0.2;
+        } else {
+            vel = 0.5;
+        }
+    } else { // position is reached -> turn into target orientation
+        double target_angle_diff = moro::angle_difference(moro::angle_normalize(target_pose.theta), moro::angle_normalize(current_pose.theta));
+
+        if (target_angle_diff > 0.08) {
+            rot = 0.15;
+        } else if (target_angle_diff < -0.08) {
+            rot = -0.15;
+        }
+    }
+
+
     geometry_msgs::Twist cmd;
-    /// creates motion command
-    cmd.linear.x = cmd_.v();
-    cmd.linear.y = 0.;
-    cmd.angular.z = cmd_.w();
-    /// publishes motion command
+    cmd.linear.x = vel;
+    cmd.angular.z = rot;
     pub_cmd_.publish(cmd);
 }

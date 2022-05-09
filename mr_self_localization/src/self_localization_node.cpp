@@ -260,7 +260,8 @@ void SelfLocalizationNode::publishPoseEstimated() {
     pose_.pose.pose.position.x = pose_estimated_.x();
     pose_.pose.pose.position.y = pose_estimated_.y();
     pose_.pose.pose.position.z = 0;
-    pose_.pose.pose.orientation = tf::createQuaternionMsgFromYaw(pose_estimated_.theta());
+    // pose_.pose.pose.orientation = tf::createQuaternionMsgFromYaw(pose_estimated_.theta());
+    pose_.pose.pose.orientation.w = pose_estimated_.theta();
     for (double &d : pose_.pose.covariance)
         d = 0;
     /// publishes motion command
