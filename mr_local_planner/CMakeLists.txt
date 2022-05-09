@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(mr_local_planner)
+project(mr_target_planner) #maybe this is wrong
+
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 add_definitions(-DPLANNER_EXERCISE=0)  # Zero for students
 
@@ -130,19 +132,30 @@ include_directories(
 add_library(mr_local_planner
   src/${PROJECT_NAME}/local_planner.cpp
 )
+add_library(mr_target_planner
+  src/${PROJECT_NAME}/target_planner.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 add_dependencies(mr_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mr_target_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(mr_local_planner
   ${OpenCV_LIBS}
 )
+target_link_libraries(mr_target_planner
+  ${OpenCV_LIBS}
+)
 
-## Declare a C++ executable
+
+# Declare a C++ executable
 add_executable(mr_local_planner_node src/local_planner_node.cpp)
+add_executable(mr_target_planner_node src/target_planner_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -150,12 +163,23 @@ add_dependencies(mr_local_planner_node
   ${${PROJECT_NAME}_EXPORTED_TARGETS} 
   ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_gencfg)
+add_dependencies(mr_target_planner_node 
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+  ${PROJECT_NAME}_gencfg)
+
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(mr_local_planner_node
   mr_local_planner
   ${catkin_LIBRARIES}
 )
+target_link_libraries(mr_target_planner_node
+  mr_target_planner
+  ${catkin_LIBRARIES}
+)
+
+
 
 #############
 ## Install ##
