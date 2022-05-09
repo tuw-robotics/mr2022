@@ -11,14 +11,24 @@ import yaml
 import numpy as np
 import scipy.interpolate as si
 #import cmapy
+#import cv2
 from skimage import io, morphology, img_as_ubyte
 from scipy import ndimage
 
 import rospy
 from nav_msgs.msg import Path
+from nav_msgs.msg import OccupancyGrid
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from std_msgs.msg import Bool, Float64
+
+class Map:
+    def __init__(self, width, height, resolution, data, origin=[0,0]):
+        self.width = width
+        self.height = height
+        self.resolution = resolution
+        self.data = data
+        self.origin = np.array(origin)
 
 class GlobalPlanner(object):
     def __init__(self):
@@ -26,6 +36,7 @@ class GlobalPlanner(object):
         
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback, queue_size = 1)
         rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
+        rospy.Subscriber('/map', OccupancyGrid, self.map_callback, queue_size = 1)
         self.path_publisher = rospy.Publisher('/waypoints', Path, queue_size=1)
         
         self.initpose = PoseWithCovarianceStamped()
@@ -41,10 +52,12 @@ class GlobalPlanner(object):
         self.verbose = True
         self.occupied_thresh = 0.5 # TODO get from map meta infos
 
-        self.output_path = "/home/andreas/PHD/Mobile_Robotics/workspace_goto/maplogs/debug"
+        #self.output_path = "/home/andreas/PHD/Mobile_Robotics/workspace_goto/maplogs/debug"
+        self.output_path = ""
         self.output_filename_root, _ = os.path.splitext(self.output_path)
 
-        image_filename = os.path.join(self.output_path, "/home/andreas/PHD/Mobile_Robotics/workspace_goto/maplogs/line.png")
+        #image_filename = os.path.join(self.output_path, "/home/andreas/PHD/Mobile_Robotics/workspace_goto/maplogs/line.png")
+        image_filename = os.path.join(self.output_path, "~/Uni_TInf/mobile_robotics/catkin_group/map_images/line.png")
         self.image = io.imread(image_filename, as_gray=True).astype(np.float)
         self.normalized_image = self.image / np.amax(self.image.flatten()) # normalize image
         self.binary_image = self.normalized_image > (self.occupied_thresh)
@@ -53,10 +66,12 @@ class GlobalPlanner(object):
         self.world_starting_position = np.zeros(2);
         self.grid_goal_position = np.zeros(2);
         self.world_goal_position = np.zeros(2);
-        self.resolution = 0.032; # TODO get from map meta infos
-        self.origin = np.array([-8.0, -8.0]); # TODO get from map meta infos
-        self.image_shape = np.array([558, 558]); # TODO get from map meta infos
+        self.resolution = 0.032; 
+        self.origin = np.array([-8.0, -8.0]);
+        self.image_shape = np.array([558, 558]);
         self.image_center = (self.image_shape + self.origin / self.resolution).astype(np.int)
+        self.map_init = False
+        self.map = None
 
         self.erosion_value = 12
         self.d_value = 25
@@ -338,6 +353,33 @@ class GlobalPlanner(object):
         rospy.loginfo("initialpose_callback received")
         self.initpose = pose_msg
         #rospy.loginfo(self.initpose)
+
+    def map_callback(self, map_msg):
+        rospy.loginfo("map_callback received")
+        if not self.map_init:
+            res = map_msg.info.resolution
+            width = map_msg.info.width
+            height = map_msg.info.height
+            map_data = np.array(map_msg.data).reshape((height, width))
+            origin_x = map_msg.info.origin.position.x
+            origin_y = map_msg.info.origin.position.y
+
+            self.resolution = res
+            self.image_shape = (height, width)
+            self.origin = [origin_x, origin_y]
+
+            rospy.loginfo("Map Resolution: " + str(res))
+            rospy.loginfo("Map Width: " + str(width))
+            rospy.loginfo("Map Height: " + str(height))
+            rospy.loginfo("Map Origin: " + str((origin_x, origin_y)))
+            
+            self.map = Map(width, height, res, map_data, [origin_x, origin_y])
+            self.map_init = True
+
+            # map_uint8 = self.map.data.astype(np.uint8)
+            # map_uint8 = map_uint8 * (255/100)
+            # cv2.imshow("win", map_uint8)
+            # cv2.waitKey()
 
 def main():
     rospy.init_node('global_planner_node')
