@@ -37,7 +37,6 @@ namespace moro
 
         ros::Subscriber sub_map_;  /// Subscriber to receive the published map as an occupancy grid
         ros::Subscriber sub_goal_; /// Subscriber to the goal in world coordinates
-        // ros::Subscriber sub_pose_estimated_; /// Subscriber to the goal in world coordinates
         ros::Publisher pub_path_;   /// publisher for the planned path to the goal
         ros::Publisher pub_cmd_;   /// publisher for the motion commands
 
@@ -55,8 +54,6 @@ namespace moro
 
         void callbackMap(const nav_msgs::OccupancyGrid &);     /// callback function to catch the map
         void callbackGoal(const geometry_msgs::PoseStamped &); /// callback function to catch goal updates
-        // void callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &); /// callback function to catch goal updates
-
 
         mr_path_planner::PathPlannerConfig config_;
         void callbackConfigPathPlanner ( mr_path_planner::PathPlannerConfig &config, uint32_t level ); /// callback function on incoming parameter changes

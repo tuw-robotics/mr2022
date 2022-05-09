@@ -85,26 +85,14 @@ void PathPlannerNode::initMapAndPather() {
 
 void PathPlannerNode::callbackGoal(const geometry_msgs::PoseStamped &goal)
 {
-    ROS_INFO("callbackGoal!");
     tf::Quaternion q;
     tf::quaternionMsgToTF(goal.pose.orientation, q);
     double roll = 0, pitch = 0, yaw = 0;
     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
     goal_ = Pose2D(goal.pose.position.x, goal.pose.position.y, yaw);
     goal_set_ = true;
-    ROS_INFO("(%f,%f,%f)", goal_.get_x(), goal_.get_y(), goal_.get_theta());
+    ROS_INFO("callbackGoal: (%f,%f,%f)", goal_.get_x(), goal_.get_y(), goal_.get_theta());
 }
-
-// void PathPlannerNode::callbackPoseEstimated(const geometry_msgs::PoseWithCovarianceStamped &poseEstimated)
-// {
-//     ROS_INFO("callbackPoseEstimated!");
-//     tf::Quaternion q;
-//     tf::quaternionMsgToTF(poseEstimated.pose.pose.orientation, q);
-//     double roll = 0, pitch = 0, yaw = 0;
-//     tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-//     pose_estimated_ = Pose2D(poseEstimated.pose.pose.position.x, poseEstimated.pose.pose.position.y, yaw);
-//     ROS_INFO("(%f,%f,%f)", pose_estimated_.get_x(), pose_estimated_.get_y(), pose_estimated_.get_theta());
-// }
 
 void PathPlannerNode::findPath() {
     if(goal_set_) {
