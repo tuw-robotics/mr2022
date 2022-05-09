@@ -134,18 +134,6 @@ void LocalPlanner::demo() {
     cmd_.set(v, w);
 }
 
-double LocalPlanner::estimateOpenCorridor(int pivot, int nHalfRays) {
-    /* 
-     * Consider a corridor as centered around a `pivot` ray with a half-width `nHalfRays`,
-     * we can estimate if the corridor is clean by computing the average length of its rays.
-     */
-    double meanDistance = 0.0;
-    for (int i = pivot - nHalfRays; i < pivot + nHalfRays; i++)
-        meanDistance += measurement_laser_[i].length;
-    meanDistance /= 2 * nHalfRays;
-    return meanDistance;
-}
-
 void LocalPlanner::wanderer1() {
     /**
     * @ToDo Wanderer
@@ -420,5 +408,5 @@ void LocalPlanner::final_alignment() {
         action_state_ = ActionState::WAIT;
     }
     // debug
-    ROS_INFO_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
+    ROS_DEBUG_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
 }

@@ -82,8 +82,7 @@ protected:
     double rotationDuration = 0.0;          // how long the rotation should last
 
     int getNextWaypointID(const double lookahead);  // compute the next waypoint along the path
-    double estimateOpenCorridor(int pivot, int nHalfRays);  // estimate if a corridor is free
-    
+
     mr_local_planner::LocalPlannerConfig config_;
 };
 }
