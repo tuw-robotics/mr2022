@@ -267,15 +267,19 @@ void SelfLocalizationNode::publishPoseEstimated () {
     pub_pose_estimated_.publish ( pose_ );
     
     
+    ///variable for the odometry to map frame transform 
     tf::Stamped<tf::Pose> o2m;
 
+    ///creates a transform from the estimated pose
     tf::Transform tf(tf::createQuaternionFromYaw(pose_estimated_.get_theta()), tf::Vector3(pose_estimated_.get_x(), pose_estimated_.get_y(), 0));
     tf::Stamped<tf::Pose> b2m(tf.inverse(), ros::Time::now(), "base_link");
     
+    ///transforms  b2m into the odometry frame and saves it into o2m 
     tf_listener_->transformPose("odom", b2m, o2m);
     
     tf::Transform tf_o2m (tf::Quaternion(o2m.getRotation()), tf::Point(o2m.getOrigin()));
 
+    ///broadcasts calculated tf
     tf_broadcaster_->sendTransform(tf::StampedTransform(tf_o2m.inverse(), ros::Time::now(), "map", "odom"));
 }
 
