@@ -365,9 +365,10 @@ void LocalPlanner::path_tracking() {
     // parameters
     double lookahead=1.0, maxsteer = 0.5, maxspeed = 0.8;
     const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
+    Pose2D& pose = this->transform_;
 
     // transform selected target to robot frame
-    int closestId = getNextWaypointID(lookahead);
+    int closestID = getNextWaypointID(lookahead);
     targetWaypoint_ = path_[closestID];     // used in visualization
     auto target_robot = pose.tf().inv() * targetWaypoint_.position();
 
@@ -402,7 +403,7 @@ void LocalPlanner::final_alignment() {
     double speed = 0, steer = 0;
     // compute error w.r.t. last waypoint
     Pose2D lastWaypoint = path_[path_.size() - 1];
-    double normError = angle_normalize(angle_difference(odom_.theta(), lastWaypoint.theta())) / M_PI;
+    double normError = angle_normalize(angle_difference(this->transform_.theta(), lastWaypoint.theta())) / M_PI;
     steer = ks * normError;
     // set command
     cmd_.set(speed, -steer);

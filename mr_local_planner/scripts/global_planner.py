@@ -76,7 +76,7 @@ class GlobalPlanner(object):
             filename_extra = "full"
         else:
             binary_image = np.copy(self.binary_image)
-            binary_image = morphology.binary_erosion(binary_image, selem=morphology.selem.disk(radius=erosion_value, dtype=np.bool))
+            binary_image = morphology.binary_erosion(binary_image, footprint=morphology.footprints.disk(radius=erosion_value, dtype=np.bool))
             filename_extra = "eroded-by-{}".format(erosion_value)
 
         distances = np.zeros_like(binary_image, np.float)
@@ -95,7 +95,7 @@ class GlobalPlanner(object):
         current_distance = 0.0
         while True:
             current_distance = current_distance + 1.0
-            dilated_mask = morphology.binary_dilation(mask, selem=morphology.selem.square(width=3, dtype=np.bool))
+            dilated_mask = morphology.binary_dilation(mask, footprint=morphology.footprints.square(width=3, dtype=np.bool))
             new_pixels = np.logical_and(binary_image, np.logical_xor(mask, dilated_mask))
             x,y = np.nonzero(new_pixels)
             if len(x) == 0:
