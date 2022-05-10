@@ -79,7 +79,7 @@ protected:
     void tangensbug();      /// Tangensbug behavior
     void goto_plan();            /// goto local plan
     std::tuple<double, double> path_tracking(Pose2D target, double lookahead);   /// geometric path tracking algorithm
-    std::tuple<double, double> alternative_planner();
+    std::tuple<double, double> alternative_planner(Pose2D target);
     std::tuple<double, double> final_alignment(); /// perform final rotation to align robot orientation
     void plotLocal();       /// plots sensor input in robot coordinates
 

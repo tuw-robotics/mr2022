@@ -31,6 +31,7 @@ private:
     ros::Subscriber sub_path_;  /// Subscriber to the goal in world coordinates
     ros::Publisher pub_cmd_;    /// publisher for the motion commands
     ros::Publisher pub_waypoint_;    /// publisher for the target waypoint
+    ros::Publisher pub_scan_vis_;    /// publisher for visualizing the gaps in scan
 
     void callbackLaser ( const sensor_msgs::LaserScan& );   /// callback function to execute on incoming sensor data
     void callbackGoal ( const geometry_msgs::Pose2D& );   /// callback function to execute on incoming goal commands
@@ -40,7 +41,9 @@ private:
 
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig> reconfigureServer_; /// parameter server stuff
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
+
     void visualizePoint(moro::Point2D point, ros::Publisher publisher, std::tuple<double, double, double> rgb_color);
+    void visualizeScan(moro::MeasurementLaser measurements);
 };
 
 #endif // PLANNER_LOCAL_NODE_H

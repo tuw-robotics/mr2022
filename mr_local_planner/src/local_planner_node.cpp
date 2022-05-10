@@ -89,8 +89,9 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /// defines a publisher for velocity commands
     pub_cmd_ = n.advertise<geometry_msgs::Twist> ( "cmd_vel", 1 );
 
-    /// defines a publisher for the next waypoint in pure pursuit
+    /// defines a publisher for the next waypoint
     pub_waypoint_ = n.advertise<visualization_msgs::Marker> ( "next_waypoint", 1 );
+    pub_scan_vis_ = n.advertise<sensor_msgs::LaserScan> ( "vis_scan", 1 );
 
     reconfigureFnc_ = boost::bind ( &LocalPlannerNode::callbackConfigLocalPlanner, this,  _1, _2 );
     reconfigureServer_.setCallback ( reconfigureFnc_ );
@@ -131,9 +132,8 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
         double y_m_r = y_s_r + x_m_s * sin(theta_s_r) + y_m_s * cos(theta_s_r);
         measurement_laser_[i].length  = range;
         measurement_laser_[i].angle  = angle;
-        measurement_laser_[i].end_point  = Point2D(x_m_r, y_m_r);        
+        measurement_laser_[i].end_point  = Point2D(x_m_r, y_m_r);
     }
-    
 #endif
 }
 /**
@@ -200,6 +200,7 @@ void LocalPlannerNode::visualization(){
         std::tuple<double, double, double> color = std::make_tuple(0.0, 1.0, 0.0);
         visualizePoint(targetWaypoint_.position(), pub_waypoint_, color);
     }
+    visualizeScan(measurement_laser_);
 }
 
 
@@ -232,4 +233,26 @@ void LocalPlannerNode::visualizePoint(Point2D point, ros::Publisher pub_point, s
     marker.color.g = std::get<1>(rgb_color);
     marker.color.b = std::get<2>(rgb_color);
     pub_point.publish(marker);
+}
+
+void LocalPlannerNode::visualizeScan(MeasurementLaser measurements){
+    // visualize the marked gaps looking at the "valid" field
+    if (measurements.empty()) return;
+    sensor_msgs::LaserScan msg;
+    msg.header.frame_id = "base_laser_link";
+    msg.header.stamp = ros::Time::now();
+    msg.angle_min = -2.35;
+    msg.angle_max = 2.35;
+    msg.angle_increment = measurements[1].angle - measurements[0].angle;
+    msg.range_min = 0;
+    msg.range_max = 30;
+    msg.ranges.resize(measurements.size());
+    msg.intensities.resize(measurements.size());
+    for (size_t i=0; i<measurements.size(); i++){
+        float intensity = 0.5;
+        if (measurements[i].valid) intensity=1;
+        msg.ranges[i] = measurements[i].length;
+        msg.intensities[i] = intensity;
+    }
+    pub_scan_vis_.publish(msg);
 }

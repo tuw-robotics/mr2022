@@ -314,9 +314,11 @@ void LocalPlanner::goto_plan() {
     /// wait to have a path
     if (path_.empty()) return;
 
-    const double lookahead = 1.0;
-    const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
-    const double alignmentTolerance = 0.05;
+    const double lookahead = 1.0;           // m, to select next waypoint
+    const double goalTolerance = 0.25;      // m, to change state to final alignment
+    const double zeroSpeedTolerance = 0.1;  // m/s, to change state to final alignment
+    const double alignmentTolerance = 0.05; // rad, to change state to wait mode
+
 
     std::tuple<double, double> cmd;
     switch (action_state_) {
@@ -324,6 +326,15 @@ void LocalPlanner::goto_plan() {
             break;
         case TRACK:{
             if (path_.empty()) break;
+            // check goal condition
+            Pose2D goalWaypoint = path_[path_.size() - 1];
+            double distToGoal = goalWaypoint.position().distanceTo(this->transform_.position());
+            double speed = std::get<0>(cmd);
+            if ( distToGoal < goalTolerance && speed < zeroSpeedTolerance) {
+                ROS_INFO_STREAM("Mode: ALIGN");
+                action_state_ = ActionState::ALIGN;
+                break;
+            }
             // find target along global path
             int waypoint_index = this->getNextWaypointID(lookahead);
             targetWaypoint_ = this->path_[waypoint_index];
@@ -332,19 +343,14 @@ void LocalPlanner::goto_plan() {
                 cmd = path_tracking(targetWaypoint_, lookahead);
             } else {
                 ROS_INFO_THROTTLE(1, "can't see path, using local planner");
-                cmd = this->alternative_planner();
-            }
-
-            if (waypoint_index == path_.size() - 1 && std::get<0>(cmd) < zeroSpeedTolerance){
-                ROS_INFO_STREAM("Mode: ALIGN");
-                action_state_ = ActionState::ALIGN;
+                cmd = this->alternative_planner(targetWaypoint_);
             }
             break;
         }
-        case ALIGN:{
+        case ALIGN: {
             cmd = final_alignment();
             // eventually change state
-            if (abs(std::get<1>(cmd)) < alignmentTolerance ){
+            if (abs(std::get<1>(cmd)) < alignmentTolerance) {
                 ROS_INFO_STREAM("Mode: WAIT");
                 action_state_ = ActionState::WAIT;
             }
@@ -360,7 +366,7 @@ int LocalPlanner::getNextWaypointID(const double lookahead) {
     // find closest waypoint
     int closestID = -1;
     double minDist = 100;
-    Pose2D& pose = this->transform_;
+    Pose2D &pose = this->transform_;
     Point2D position = pose.position();
     for (size_t i = 0; i < path_.size(); i++) {
         Pose2D waypoint = path_[i];
@@ -391,7 +397,7 @@ std::tuple<double, double> LocalPlanner::path_tracking(Pose2D targetWaypoint, do
      */
     // parameters
     double maxsteer = 0.5, maxspeed = 0.8;
-    Pose2D& pose = this->transform_;
+    Pose2D &pose = this->transform_;
 
     // transform selected target to robot frame
     auto target_robot = pose.tf().inv() * targetWaypoint_.position();
@@ -429,7 +435,8 @@ std::tuple<double, double> LocalPlanner::final_alignment() {
     return std::make_tuple(speed, steer);
 }
 
-void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transform, geometry_msgs::TransformStamped& new_laser_transform) {
+void LocalPlanner::updateTransform(geometry_msgs::TransformStamped &new_transform,
+                                   geometry_msgs::TransformStamped &new_laser_transform) {
     transform_.set_x(new_transform.transform.translation.x);
     transform_.set_y(new_transform.transform.translation.y);
 
@@ -463,7 +470,8 @@ bool LocalPlanner::nextWaypointReachable(Pose2D targetWaypoint) {
     double distance = targetWaypoint.position().distanceTo(this->transform_.position());
     double ray_calc = (target_waypoint_polar.alpha() - angle_min) / angle_increment;
 
-    if (ray_calc < 0.0 || ray_calc > (double) this->measurement_laser_.size()) {    // we can't see the point so we don't even have to try
+    if (ray_calc < 0.0 ||
+        ray_calc > (double) this->measurement_laser_.size()) {    // we can't see the point so we don't even have to try
         return false;
     }
 
@@ -476,6 +484,89 @@ bool LocalPlanner::nextWaypointReachable(Pose2D targetWaypoint) {
     return true;
 }
 
-std::tuple<double, double> LocalPlanner::alternative_planner() {
-    return std::make_tuple(0.0, 0.0);
+std::tuple<double, double> LocalPlanner::alternative_planner(Pose2D targetWaypoint) {
+    const double angle_max = 2.3561945, angle_min = -2.3561945;
+    const double angle_increment = 0.0175181739;
+    const double minWidthGap = 0.30;   // m
+    const double breakingDistance = 0.25;
+
+    // initialize gaps
+    struct Gap {
+        int begin;
+        int end;
+        int size;
+        int center;
+        int dgoal;
+
+        Gap(int b, int e, int g) {
+            begin = b;
+            end = e;
+            center = begin + (end - begin) / 2;
+            size = end - begin;
+            if ( g >= b && g <= e){
+                dgoal = 0;  // target point in gap, distance(gap, goal)=0
+            } else {
+                dgoal = fmin(abs(b-g), abs(e-g));  // target point outside gap
+            }
+        }
+
+        static bool cmp(const Gap &a, const Gap &b){
+            return a.dgoal <= b.dgoal;
+        };
+    };
+
+    std::vector<Gap> gaps;
+    // convert it to polar coordinates in laser frame
+    Point2D target_waypoint_laser = this->laser_transform_.tf().inv() * targetWaypoint.position();
+    Polar2D target_waypoint_polar(target_waypoint_laser);
+
+    double distance = targetWaypoint.position().distanceTo(this->transform_.position());
+    double ray_calc = (target_waypoint_polar.alpha() - angle_min) / angle_increment;
+
+    int ray = (int) ray_calc;
+
+    double speed = 0, steer = 0;
+    if (ray < 45 || ray > this->measurement_laser_.size() - 45) {    // if behind: inplace rotation
+        steer = 0.2;    // fix-side rotation
+    } else {    // if in front: follow close gaps
+        // find gaps
+        int beginGap = -1, endGap = -1;
+        const double threshold = distance;
+        ROS_INFO_STREAM("OBSTACLE RAY: " << ray << " AT DIST " << threshold);
+
+        double distClosestObstacle = 100;
+        for (size_t i = 0; i < this->measurement_laser_.size() - 1; ++i) {
+            distClosestObstacle = fmin(distClosestObstacle, measurement_laser_[i].length);  // for speed control
+            if (measurement_laser_[i].length > threshold) {
+                if (beginGap < 0) {
+                    beginGap = i;
+                }
+                if (measurement_laser_[i + 1].length < threshold) {
+                    endGap = i;
+                    double alpha = measurement_laser_[beginGap].angle - measurement_laser_[endGap].angle;
+                    int width = 30;
+                    ROS_INFO_STREAM("Found gap of size " << width);
+                    if (endGap - beginGap >= minWidthGap) {
+                        Gap gap(beginGap, endGap, ray);
+                        gaps.push_back(gap);
+                    }
+                    // reset gap
+                    beginGap = -1;
+                    endGap = -1;
+                }
+            }
+        }
+        //
+        if (gaps.size() > 0){
+            std::sort(gaps.begin(), gaps.end(), Gap::cmp );
+            steer = measurement_laser_[gaps[0].center].angle;
+            distClosestObstacle = (fmin(distClosestObstacle, 1) - breakingDistance) / (1 - breakingDistance);  // clamp distance and normalize it
+            speed = 0.5 * distClosestObstacle;  // 0.5 m/s for dist >= 1.0 m, 0.0 m/s for dist <= breakingDistance
+            ROS_INFO_STREAM("Found gap\n");
+        } else {
+            ROS_INFO_STREAM("NOT found gap in field-of-view\n");
+        }
+
+    }
+    return std::make_tuple(speed, steer);
 }
