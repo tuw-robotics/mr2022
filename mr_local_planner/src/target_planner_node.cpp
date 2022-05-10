@@ -8,6 +8,8 @@ void callback_target(const geometry_msgs::PoseStamped &goal) {
     target_pose.x = goal.pose.position.x;
     target_pose.y = goal.pose.position.y;
     target_pose.theta = 2 * atan2(goal.pose.orientation.z, goal.pose.orientation.w);
+
+    ROS_DEBUG("received message on /move_base_simple/goal");
 }
 
 void callback_pose(const geometry_msgs::PoseWithCovarianceStamped &pose) {
@@ -17,16 +19,6 @@ void callback_pose(const geometry_msgs::PoseWithCovarianceStamped &pose) {
 }
 
 int main(int argc, char **argv) {
-    /**
-     * The ros::init() function needs to see argc and argv so that it can perform
-     * any ROS arguments and name remapping that were provided at the command line.
-     * For programmatic remappings you can use a different version of init() which takes
-     * remappings directly, but for most command-line programs, passing argc and argv is
-     * the easiest way to do it.  The third argument to init() is the name of the node.
-     *
-     * You must call one of the versions of ros::init() before using any other
-     * part of the ROS system.
-     */
     ros::init(argc, argv, "target_planner");
 
     ros::NodeHandle n;
@@ -63,27 +55,27 @@ void TargetPlannerNode::move() {
     double dx = 0;
     double dy = 0;
     double angle_diff = 0;
-    // switch were position comes from
-    if(true){
-        tf::StampedTransform transform;
-        if (tf_listener_->frameExists("/odom")) {
-            tf_listener_->lookupTransform("/odom", "/base_footprint", ros::Time(0), transform);
-        }
 
-        dx = target_pose.x - transform.getOrigin().x();
-        dy = target_pose.y - transform.getOrigin().y();
-        double target_angle = std::atan2(dy, dx);
-        auto rotation = transform.getRotation();
-        auto current_angle = 2 * atan2(rotation.z(), rotation.w());
-        angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_angle));
+    tf::StampedTransform transform;
+    if (tf_listener_->frameExists("/odom")) {
+        tf_listener_->lookupTransform("/odom", "/base_footprint", ros::Time(0), transform);
     }
-    else{
-        dx = target_pose.x - current_pose.x;
-        dy = target_pose.y - current_pose.y;
-        double target_angle = std::atan2(dy, dx);
-        angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_pose.theta));
 
-    }
+    dx = target_pose.x - transform.getOrigin().x();
+    dy = target_pose.y - transform.getOrigin().y();
+    double target_angle = std::atan2(dy, dx);
+    auto rotation = transform.getRotation();
+    auto current_angle = 2 * atan2(rotation.z(), rotation.w());
+    angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_angle));
+
+    // Alternatively use pose_estimated topic for current position
+    /*
+    dx = target_pose.x - current_pose.x;
+    dy = target_pose.y - current_pose.y;
+    double target_angle = std::atan2(dy, dx);
+    angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_pose.theta));
+    */
+
     double pos_diff = sqrt(dx * dx + dy * dy);
 
 

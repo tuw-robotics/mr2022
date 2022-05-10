@@ -218,7 +218,7 @@ void SelfLocalizationNode::callbackInitialpose(const geometry_msgs::PoseWithCova
     double a = yaw;
     pose_filter_->reinitialize(Pose2D(pose.pose.pose.position.x, pose.pose.pose.position.y, a));
 
-    ROS_DEBUG("receive message on /initialpose");
+    ROS_DEBUG("received message on /initialpose");
 }
 
 
