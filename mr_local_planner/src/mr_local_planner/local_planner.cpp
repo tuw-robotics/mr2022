@@ -234,7 +234,7 @@ void LocalPlanner::bug1() {
     Pose2D gR = mapBaselinkTf_.tf().inv() * g.position();
     //double thetaDiff = angle_difference(q.theta(), tf::getYaw(goal_local_.pose.orientation));
     double thetaDiff = atan2(gR.y(), gR.x());
-    ROS_INFO("diff: %f", thetaDiff);
+    //ROS_INFO("diff: %f", thetaDiff);
     switch(action_state_) {
         case INIT: 
             action_state_ = STRAIGHT;
