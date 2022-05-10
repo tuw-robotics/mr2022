@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="world" default="cave.world" />
   <arg name="stage" default="false" />
   <arg name="mode" default="0" />
   <arg name="plot_data" default="true" />
+  <arg name="cfg" default="ekf.yaml" />  <!-- particle_filter.yaml, ekf.yaml -->
+  <arg name="map" default="line" />
   <group if="$(arg stage)">
     <include file="$(find stage_ros)/launch/world.launch">
-      <arg name="world" default="$(arg world)" />
+      <arg name="world" default="$(arg map).world" />
     </include>
   </group>
   <node pkg="mr_local_planner" type="mr_target_planner_node" name="target_planner" output="screen">
@@ -16,12 +17,12 @@
       <remap from="cmd_vel" to="cmd_vel" />
       <remap from="odom" to="odom" />
   </node>
-  <!--<node pkg="mr_self_localization" type="mr_self_localization_node" name="mr_self_localization" output="screen">
-      <param name="mode" value="$(arg mode)" />
-      <param name="plot_data" value="$(arg plot_data)" />
-      <param name="map_image" value="$MR_DIR/src/mr2022/mr_self_localization/maps/line.png" />
-      <param name="map_lines" value="$MR_DIR/src/mr2022/mr_self_localization/maps/line.yml" />
-      <remap from="scan" to="base_scan" />
-      <remap from="cmd" to="cmd_vel" />
-  </node>-->
+  <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
+    <rosparam file="$(find mr_self_localization)/cfg/$(arg cfg)" command="load"/>
+    <param name="map_image" value="$(find mr_self_localization)/maps/$(arg map).png" />
+    <param name="map_lines" value="$(find mr_self_localization)/maps/$(arg map).yml" />
+    <remap from="scan" to="base_scan" />
+    <remap from="cmd" to="cmd_vel" />
+    <remap from="odom" to="odom" />
+  </node>
 </launch>
