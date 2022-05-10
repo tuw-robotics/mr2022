@@ -179,6 +179,7 @@ void LocalPlannerNode::callbackPath(const nav_msgs::Path & path_msg) {
     }
     action_state_ = ActionState::TRACK;
     ROS_INFO_STREAM("Received path of length " << path_.size() << ", mode: " << action_state_);
+    ROS_INFO_STREAM("Mode: TRACK");
 }
 
 /**

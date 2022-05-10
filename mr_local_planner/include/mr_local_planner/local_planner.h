@@ -78,12 +78,12 @@ protected:
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
     void goto_plan();            /// goto local plan
-    void path_tracking(double lookahead);   /// geometric path tracking algorithm
-    void alternative_planner();
-    void final_alignment(); /// perform final rotation to align robot orientation
+    std::tuple<double, double> path_tracking(Pose2D target, double lookahead);   /// geometric path tracking algorithm
+    std::tuple<double, double> alternative_planner();
+    std::tuple<double, double> final_alignment(); /// perform final rotation to align robot orientation
     void plotLocal();       /// plots sensor input in robot coordinates
 
-    bool nextWaypointReachable(double lookahead);
+    bool nextWaypointReachable(Pose2D targetWaypoint);
     
     // Wanderer
     ros::Time rotationStart = ros::Time::now();   // when a in-place rotation started
