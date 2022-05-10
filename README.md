@@ -2,7 +2,8 @@
 ### 10.5.2022
 **Allacher Alexander, Voboril Florentina, Zehetner Clemens**
 
-To start our project run: roslaunch mr_local_planner target_planner.launch stage:=1 map:=line
+To start our project run: 
+`roslaunch mr_local_planner target_planner.launch stage:=1 map:=line`
 
 ## 0. Be able to use Git `[20/20]`
 Participating: Allacher, Voboril, Zehetner
