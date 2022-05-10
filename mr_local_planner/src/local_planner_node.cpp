@@ -146,7 +146,15 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * @param odom
  **/
 void LocalPlannerNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
-    goal_.set ( goal.pose.position.x, goal.pose.position.y, goal.pose.orientation.w );
+    tf::Quaternion q(
+        goal.pose.orientation.x,
+        goal.pose.orientation.y,
+        goal.pose.orientation.z,
+        goal.pose.orientation.w);
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    goal_.set ( goal.pose.position.x, goal.pose.position.y, yaw);
     goal_.recompute_cached_cos_sin();
 
     start_ = odom_;
