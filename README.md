@@ -55,6 +55,8 @@ rosrun mr_local_planner mr_custom_planner_node scan:=base_scan
 rosrun mr_self_localization mr_self_localization_node cmd:=cmd_vel scan:=base_scan _mode:=1 _initial_with_ground_truth:=true _plot_data:=true _reinitialize:=true _map_image:="$MR_DIR/src/mr-20.04/mr_self_localization/maps/line.png" _map_lines:="$MR_DIR/src/mr-20.04/mr_self_localization/maps/line.yml"
 ```
 
+To use `rviz` we provide a config file `mr_local_planner/config.rviz`.
+
 We connected Rviz to the planner, by "posting" a goal pose on the topic move_base_simple/goal. This triggers a callback in the custom_planner_node, which in turn saves the position passed down from rviz inside a goal_ variable. This variable is used in the planner node, to guide the robot towards the selected point on the map. Our approach consists of calculating the angle between the direction the robot is facing, and the goal point. The robot is then turned to face the goal, and starts driving in a straight line. We use a simple iteration "timer" to counteract the oversteering that happens, when the angular velocity hasn't been fully reset yet. When a new goal is set, the driving resets, and a new heading angle is calculated.
 
 ## 4.3 Avoid Obstacle `[0/50]`
