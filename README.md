@@ -87,3 +87,12 @@ rospkg~=1.4.0
 * Make the local planner to follow the nav_msgs/Path. (50 Points)
 * * The path is followed by the local planner (see above).
 
+![binimage](images/ros_global_planner_debug.eroded-by-18.binary_image.png) Eroded drivable area.
+
+![distmap](images/ros_global_planner_debug.eroded-by-18.normalized_distances.png) Distance map to the target.
+
+![starttarget](images/ros_global_planner_debug.race_line_eroded.png) Path from the start to the target.
+
+![path2](images/path2.png) Published waypoints.
+
+
