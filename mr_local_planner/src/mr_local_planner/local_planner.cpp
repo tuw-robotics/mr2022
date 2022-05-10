@@ -312,14 +312,21 @@ void LocalPlanner::tangensbug() {
 
 void LocalPlanner::goto_plan() {
     /// wait to have a path
-    if (path_.size() == 0) return;
+    if (path_.empty()) return;
+
+    double lookahead = 1.0;
 
     ROS_INFO_STREAM("Mode: " << action_state_);
     switch (action_state_) {
         case WAIT:
             break;
         case TRACK:
-            path_tracking();
+            if (this->nextWaypointReachable(lookahead)) {
+                path_tracking(lookahead);
+            } else {
+                ROS_INFO_THROTTLE(1, "can't see path, using local planner");
+                this->alternative_planner();
+            }
             break;
         case ALIGN:
             final_alignment();
@@ -354,7 +361,7 @@ int LocalPlanner::getNextWaypointID(const double lookahead) {
 }
 
 
-void LocalPlanner::path_tracking() {
+void LocalPlanner::path_tracking(double lookahead) {
     /**
      * Geometric algorithm to track path: control steer and speed w.r.t. the closest waypoint > lookahead distance.
      * Simple proportional control, no fancy steering (e.g., pure pursuit).
@@ -363,7 +370,7 @@ void LocalPlanner::path_tracking() {
      *
      */
     // parameters
-    double lookahead=1.0, maxsteer = 0.5, maxspeed = 0.8;
+    double maxsteer = 0.5, maxspeed = 0.8;
     const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
     Pose2D& pose = this->transform_;
 
@@ -415,7 +422,7 @@ void LocalPlanner::final_alignment() {
     ROS_DEBUG_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
 }
 
-void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transform) {
+void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transform, geometry_msgs::TransformStamped& new_laser_transform) {
     transform_.set_x(new_transform.transform.translation.x);
     transform_.set_y(new_transform.transform.translation.y);
 
@@ -425,4 +432,47 @@ void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transfor
     double _roll, _pitch, yaw;
     tf2::Matrix3x3(quat).getEulerYPR(yaw, _pitch, _roll);
     transform_.set_theta(yaw);
+
+    laser_transform_.set_x(new_laser_transform.transform.translation.x);
+    laser_transform_.set_y(new_laser_transform.transform.translation.y);
+
+    tf2::Quaternion laser_quat;
+    tf2::convert(new_laser_transform.transform.rotation, laser_quat);
+
+    double _laser_roll, _laser_pitch, laser_yaw;
+    tf2::Matrix3x3(laser_quat).getEulerYPR(laser_yaw, _laser_pitch, _laser_roll);
+    laser_transform_.set_theta(laser_yaw);
+}
+
+bool LocalPlanner::nextWaypointReachable(double lookahead) {
+    if (path_.empty())
+        return false;
+
+    const double angle_min = -2.3561945;
+    const double angle_max = 2.3561945;
+    const double angle_increment = 0.0175181739;
+
+    int waypoint_index = this->getNextWaypointID(lookahead);
+    Pose2D target_waypoint = this->path_[waypoint_index];
+    Point2D target_waypoint_laser = this->laser_transform_.tf().inv() * target_waypoint.position();
+    Polar2D target_waypoint_polar(target_waypoint_laser);
+
+    double distance = target_waypoint.position().distanceTo(this->transform_.position());
+    double ray_calc = (target_waypoint_polar.alpha() - angle_min) / angle_increment;
+
+    if (ray_calc < 0.0 || ray_calc > (double) this->measurement_laser_.size()) {    // we can't see the point so we don't even have to try
+        return false;
+    }
+
+    int ray = (int) std::round(ray_calc);
+    for (size_t i = std::max(0, ray - 10); i < std::min((int) this->measurement_laser_.size(), ray + 10); ++i) {
+        if (this->measurement_laser_[i].length - distance < 0.3) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void LocalPlanner::alternative_planner() {
+    this->cmd_.set(0.0, 0.0);
 }

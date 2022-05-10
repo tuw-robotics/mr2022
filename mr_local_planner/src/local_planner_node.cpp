@@ -21,9 +21,11 @@ int main ( int argc, char **argv ) {
 
         try {
             auto transform = tf_buffer.lookupTransform("map", "base_link", ros::Time(0));
-            planner.updateTransform(transform);
+            auto laser_transform = tf_buffer.lookupTransform("map", "base_laser_link", ros::Time(0));
+            planner.updateTransform(transform, laser_transform);
         } catch(tf2::TransformException& e) {
             ROS_WARN_STREAM_THROTTLE(1, "failed to get transform from map to base_link " << e.what());
+            continue;
         }
 
         /// calls your loop

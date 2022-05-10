@@ -50,7 +50,7 @@ public:
     void init();                         /// initialization
     void ai();                           /// artificial intelligence calls a behavior
     void plot();                         /// plots sensor input
-    void updateTransform(geometry_msgs::TransformStamped& new_transform);
+    void updateTransform(geometry_msgs::TransformStamped& new_transform, geometry_msgs::TransformStamped& new_laser_transform);
 
 protected:
     std::random_device rd{};
@@ -62,6 +62,7 @@ protected:
     Pose2D start_; /// start pose in world coordinates
     Pose2D odom_;  /// current pose based on odometrie
     Pose2D transform_; /// current transformation published by self localization using the tf tree
+    Pose2D laser_transform_; /// current transformation of lidar published by self localization using the tf tree
     std::vector<Pose2D> path_;  /// path as sequence of points
     Pose2D targetWaypoint_;   /// goal waypoint (pure pursuit) in world coordinates
     ActionState action_state_;  /// current action state
@@ -77,9 +78,12 @@ protected:
     void bug2();            /// Bug2 behavior
     void tangensbug();      /// Tangensbug behavior
     void goto_plan();            /// goto local plan
-    void path_tracking();   /// geometric path tracking algorithm
+    void path_tracking(double lookahead);   /// geometric path tracking algorithm
+    void alternative_planner();
     void final_alignment(); /// perform final rotation to align robot orientation
     void plotLocal();       /// plots sensor input in robot coordinates
+
+    bool nextWaypointReachable(double lookahead);
     
     // Wanderer
     ros::Time rotationStart = ros::Time::now();   // when a in-place rotation started
