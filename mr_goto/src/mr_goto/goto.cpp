@@ -2,6 +2,7 @@
 #include <opencv2/core/core.hpp>
 #include <boost/concept_check.hpp>
 #include <tf/transform_datatypes.h>
+#include <time.h>
 
 using namespace cv;
 using namespace moro;
@@ -89,7 +90,7 @@ void Goto::plotLocal() {
         }
     }
     
-    double dt = 0.1;
+    double dt = duration_last_update_.total_microseconds() /1000000.;
     double max_acc_tra = 1.5 * dt;
     double max_acc_rot = 30.0 * dt;
     double v = cmd_.v();
@@ -201,7 +202,7 @@ Point2D dist(double v, double w, double dt) {
 void Goto::fill_search_space(){
     if( measurement_laser_.size() == 0) return;
     
-    double dt = 1.0;
+    double dt = duration_last_update_.total_microseconds() /1000000.;
     
     double laser_ang_min = measurement_laser_[0].angle;
     double laser_ang_max = measurement_laser_[measurement_laser_.size() - 1].angle;
@@ -246,7 +247,7 @@ double Goto::NF(double v, double w, Pose2D target) {
 
 Command Goto::select_from_dw(Pose2D target)
 {    
-    double dt = 1.0;
+    double dt = duration_last_update_.total_microseconds() /1000000.;
     double max_acc_tra = 1.5 * dt;
     double max_acc_rot = M_PI/6.0 * dt;
     double v = cmd_.v();
@@ -287,7 +288,9 @@ void Goto::bug2() {
     /**
     * @ToDo 4.3 Avoid obstacle
     **/
-    if(goal_set_ && (!config_.use_path || path_set_)) {
+    if(loop_count_%2 != 0) return;
+
+    if(goal_set_ && (!config_.use_path || path_set_) && updateTimestamp(ros::Time::now().toBoost())) {
         Pose2D target;
 
         if(config_.use_path) {
@@ -308,5 +311,17 @@ void Goto::bug2() {
             
             cmd_ = select_from_dw(target);
         }
+    }
+}
+
+///@return true on successful update, false on first use and if t is in the past
+bool Goto::updateTimestamp ( const boost::posix_time::ptime& t )  {
+    if ( timestamp_last_update_.is_not_a_date_time() ) timestamp_last_update_ = t;
+    if ( timestamp_last_update_ < t ) {
+        duration_last_update_ = t - timestamp_last_update_;
+        timestamp_last_update_ = t;
+        return true;
+    } else {
+        return false;
     }
 }

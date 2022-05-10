@@ -61,10 +61,13 @@ protected:
     // Members and functions for DWA
     cv::Mat Vs_; /// DWA search space
     Figure figure_search_space_;  /// Figure for command visualization
+    boost::posix_time::ptime timestamp_last_update_;  /// time of the last calculated command
+    boost::posix_time::time_duration duration_last_update_;  /// time since the previous calculated command
     
     void fill_search_space();
     Command select_from_dw(Pose2D target);
     double NF(double v, double w, Pose2D target);
+    bool updateTimestamp(const boost::posix_time::ptime& t);
 };
 }
 

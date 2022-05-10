@@ -52,7 +52,7 @@ Implemented By: all of us
 Using the self-localization in our planner is fulfilled by using its published pose estimate and map, as described in the sections 1 and 3. Operating the planner with RViz is achieved by subscribing to `/move_base_simple/goal` as explained in section 2.
 
 #### 4.1 New Node
-Implemented By: Florian Pressel and Jan Hadl
+Implemented By: Georg Amstetter and Jan Hadl
 
 We implemented the movement logic and motion calculation for exercise parts 4.2 and 4.3 in a new node called `mr_goto`. The path-finding for exercise path 4.4 is implemented in an additional node, `mr_path_planner`. 
 
