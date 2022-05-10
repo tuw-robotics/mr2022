@@ -23,7 +23,7 @@ The map_server node is included in the mr_goto/launch/goto.launch file and the m
 The self-localization node subscribes to the `/initialpose` topic and listenes for the event which can be triggered with RViz. The local-planner node subscribes to the `/move_base_simple/goal` topic which as well can be triggered with Rviz.
 
 ![image-20220510173730920](./img/image-20220510173730920.png)
-![image-20220510173730920](./img/image-20220510173730920.png)
+![image-20220510173923147](./img/image-20220510173923147.png)
 
 
 ### 3. Connect self-localization and planner (45p)
