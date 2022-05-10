@@ -23,8 +23,10 @@ Sending messages using `ROS_DEBUG` can be e.g. seen using `rqt_console`:
 
 ## 3. Connect self-localization and planner - `[45/45]`
 
-TODO: Documentation (image of tf-tree?)
+By using a TransformBroadcaster inside the self_localization_node, we were able to publish the transform between the map frame and the odometry frame. This broadcasted message was then "caught" using a listener in the local_planner_node. The image shows the tf-tree connection between the map and odom frames. 
+
+![tf tree](images/tf-tree.png)
 
 ## 4. Planner
 
-TODO: Task
+We connected Rviz to the planner, by "posting" a goal pose on the topic move_base_simple/goal. This triggers a callback in the local_planner_node, which in turn saves the position passed down from rviz inside a goal_ variable. This variable is used in the planner node, to guide the robot towards the selected point on the map. Our approach consists of calculating the angle between the direction the robot is facing, and the goal point. The robot is then turned to face the goal, and starts driving in a straight line. We use a simple iteration "timer" to counteract the oversteering that happens, when the angular velocity hasn't been fully reset yet. When a new goal is set, the driving resets, and a new heading angle is calculated. 
