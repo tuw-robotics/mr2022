@@ -1,6 +1,7 @@
 #include "mr_local_planner/local_planner.h"
 #include <opencv2/core/core.hpp>
 #include <boost/concept_check.hpp>
+#include <tf/transform_datatypes.h>
 
 using namespace cv;
 using namespace moro;
@@ -221,7 +222,57 @@ void LocalPlanner::bug1() {
     * @ToDo Bug1
     * use goal_, start_ and odom_
     **/
+    Pose2D q = odom_;
+    Pose2D g = goal_;
+    double v = 0.0;
+    double w = 0.0;
+    int i = 1;
+    bool isAtGoal = false;
+    bool isAtObstacle = false;
+    bool isBackAgain = false;
+    
+    Pose2D gR = mapBaselinkTf_.tf().inv() * g.position();
+    //double thetaDiff = angle_difference(q.theta(), tf::getYaw(goal_local_.pose.orientation));
+    double thetaDiff = atan2(gR.y(), gR.x());
+    ROS_INFO("diff: %f", thetaDiff);
+    switch(action_state_) {
+        case INIT: 
+            action_state_ = STRAIGHT;
+            break;
+        case TURN:
+            w = min(0.2, max(-0.2, thetaDiff));
+            if (abs(thetaDiff) <= 0.07) {
+                action_state_ = STRAIGHT;
+            } /*else if(thetaDiff < 0 && thetaDiff >= -0.3) {
+                w = 0.05;
+            } else if (thetaDiff > 0 && thetaDiff <= 0.3) {
+                w = -0.05;
+            } else if (thetaDiff < 0 && thetaDiff < -0.3) {
+                w = 0.2;
+            } else if (thetaDiff > 0 && thetaDiff > 0.3) {
+                w = -0.2;
+            }*/
+            break;
+        case STRAIGHT:
+            v = 0.7;
+            if (reachedPose(q, g)) {
+                action_state_ = WAIT;
+            } else if (abs(thetaDiff) > 0.07) {
+                action_state_ = TURN;
+            }
+            break;
+        default:
+            v = 0.0;
+            w = 0.0;
+            break;
+    }
+    cmd_.set(v, w);
 }
+
+bool LocalPlanner::reachedPose(Pose2D pose1, Pose2D pose2) {
+    return pose1.position().distanceTo(pose2.position()) < 0.01;
+}
+
 void LocalPlanner::bug2() {
     /**
     * @ToDo Bug2
@@ -229,10 +280,17 @@ void LocalPlanner::bug2() {
     **/
 
 }
+
 void LocalPlanner::tangensbug() {
     /**
     * @ToDo Tangensbug
     * use goal_, start_ and odom_
     **/
 
+}
+
+void LocalPlanner::callbackTransform (tf::StampedTransform& tf) {
+    double roll = 0, pitch = 0, yaw = 0;
+    tf::Matrix3x3 (tf.getRotation()).getRPY ( roll, pitch, yaw );
+    mapBaselinkTf_.set(tf.getOrigin().x(), tf.getOrigin().y(), yaw);
 }
