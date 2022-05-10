@@ -131,18 +131,31 @@ add_library(mr_local_planner
   src/${PROJECT_NAME}/local_planner.cpp
 )
 
+## Add the custom planner binary, 
+add_library(mr_custom_planner
+  src/${PROJECT_NAME}/../mr_custom_planner/custom_planner.cpp
+)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 add_dependencies(mr_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(mr_custom_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(mr_local_planner
   ${OpenCV_LIBS}
 )
 
+target_link_libraries(mr_custom_planner
+  ${OpenCV_LIBS}
+)
+
 ## Declare a C++ executable
 add_executable(mr_local_planner_node src/local_planner_node.cpp)
+
+## Add the custom planner executable
+add_executable(mr_custom_planner_node src/custom_planner_node)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -151,9 +164,19 @@ add_dependencies(mr_local_planner_node
   ${catkin_EXPORTED_TARGETS}
   ${PROJECT_NAME}_gencfg)
 
+add_dependencies(mr_custom_planner_node
+  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
+  ${catkin_EXPORTED_TARGETS}
+  ${PROJECT_NAME}_gencfg)
+
 ## Specify libraries to link a library or executable target against
 target_link_libraries(mr_local_planner_node
   mr_local_planner
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(mr_custom_planner_node
+  mr_custom_planner
   ${catkin_LIBRARIES}
 )
 
