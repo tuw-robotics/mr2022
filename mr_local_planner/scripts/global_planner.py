@@ -219,7 +219,7 @@ class GlobalPlanner(object):
 
         #For debugging:
         if self.export_debug_images:
-            race_line = morphology.binary_dilation(race_line, selem=morphology.selem.square(width=2, dtype=np.bool)) # dilate for thicker line
+            race_line = morphology.binary_dilation(race_line, footprint=morphology.footprints.disk(radius=2, dtype=np.bool)) # dilate for thicker line
             io.imsave(self.output_filename_root + '.race_line_' + filename_part + '.png', img_as_ubyte(race_line * 255) - self.binary_image.astype(float) * 150)
 
         # optional: use spline interpolation
@@ -234,7 +234,7 @@ class GlobalPlanner(object):
 
         #For debugging:
         if self.export_debug_images:
-            spline_line = morphology.binary_dilation(spline_line, selem=morphology.selem.square(width=2, dtype=np.bool)) # dilate for thicker line
+            spline_line = morphology.binary_dilation(spline_line, footprint=morphology.footprints.disk(radius=2, dtype=np.bool)) # dilate for thicker line
             io.imsave(self.output_filename_root + '.spline_line.png', img_as_ubyte(spline_line * 255) - self.binary_image.astype(float) * 150)
 
         spline_line_blurred = ndimage.gaussian_filter(spline_line.astype(float) * 150, sigma=3) * full_drivable_area;
