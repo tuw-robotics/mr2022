@@ -68,10 +68,11 @@ rospkg~=1.4.0
 ![goto](images/mr_goto.gif)
 
 #### Avoid obstacle (Implemented by Luigi)
-* Your vehicle can drive to a goal location even if there is obstacle with 1x1m (movable box) in size in between. (25 Points)
-  * If the local planner is not able to navigate to the next waypoint because it is obstructed it switches to an alternative controller.
-* Your vehicle can drive to a goal location even if there is a cave obstacle such the one [-5,-3] in between. (25 Points)
-* * This obstacle is already part of the map and therefore avoided by the global planner already (see below).
+1. Use same instruction as previous point.
+2. The robot is (more or less) able to avoid obstacle (1x1) along the path.
+3. The following animation shows the maneuver to avoid the obstacle (*speed x2*).
+
+![goto](images/mr_goto_obstacle.gif)
 
 #### Plan (Implemented by Andreas)
 * Write a node or modify the planner and/or self-localization to plan a path to the goal location using waypoints and publish it as ROS nav_msgs/Path message. (50 Points)
