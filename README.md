@@ -1,4 +1,6 @@
 # mr2022
+_Team blue_
+
 ## Team members
 * Daniel
 * Luigi
@@ -37,11 +39,13 @@ rospkg~=1.4.0
 
 ### Initialize self-localization and trigger driving using RViz (50 Points)
 1. Start like described in _Basic startup_.
-2. Set `2D Pose Estimate` using RViz.
+2. Optional: Set `2D Pose Estimate` using RViz.
 3. Set `2D Nav Goal` using RViz.
-4. You will see the `2D Pose Estimate` visualized with a green arrow.
+4. You will see the `2D Pose Estimate` visualized with a green arrow (if it was set).
 5. You will see the `2D Nav Goal` visualized with a red arrow.
 7. Wait for some seconds and you will see the path from the global planner visualized in purple.
+
+![path1](images/path1.png)
 
 ### Connect self-localization and planner (45 Points)
 1. Start like described in _Basic startup_.
@@ -73,6 +77,7 @@ rospkg~=1.4.0
 #### Plan
 * Write a node or modify the planner and/or self-localization to plan a path to the goal location using waypoints and publish it as ROS nav_msgs/Path message. (50 Points)
 * * The path is planned and published to `/waypoints` by the global planner.
+* * Note that we publish an orientation at each waypoint, however is it only considered by the local planner for the terminal waypoint to match the orientation of the `2D Nav Goal`.
 * Make the local planner to follow the nav_msgs/Path. (50 Points)
 * * The path is followed by the local planner.
 
