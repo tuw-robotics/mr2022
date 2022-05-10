@@ -7,7 +7,10 @@ using namespace moro;
 
 CustomPlanner::CustomPlanner ( const std::string &ns )
     : action_state_ ( ActionState::NA ),
-      prev_goal_ (Pose2D (0,0,0)) {
+      prev_goal_ (Pose2D (0,0,0)),
+      wait_count_ ( 0 ),
+      waiting_ ( false ) {
+
 }
 
 /// Implements AI as in the local_planner variant, features only the GoTo "bug1" mode
