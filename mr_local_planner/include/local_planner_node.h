@@ -43,7 +43,6 @@ private:
     dynamic_reconfigure::Server<mr_local_planner::LocalPlannerConfig>::CallbackType reconfigureFnc_;  /// parameter server stuff
 
     void visualizePoint(moro::Point2D point, ros::Publisher publisher, std::tuple<double, double, double> rgb_color);
-    void visualizeScan(moro::MeasurementLaser measurements);
 };
 
 #endif // PLANNER_LOCAL_NODE_H

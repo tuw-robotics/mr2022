@@ -200,7 +200,6 @@ void LocalPlannerNode::visualization(){
         std::tuple<double, double, double> color = std::make_tuple(0.0, 1.0, 0.0);
         visualizePoint(targetWaypoint_.position(), pub_waypoint_, color);
     }
-    visualizeScan(measurement_laser_);
 }
 
 
@@ -233,26 +232,4 @@ void LocalPlannerNode::visualizePoint(Point2D point, ros::Publisher pub_point, s
     marker.color.g = std::get<1>(rgb_color);
     marker.color.b = std::get<2>(rgb_color);
     pub_point.publish(marker);
-}
-
-void LocalPlannerNode::visualizeScan(MeasurementLaser measurements){
-    // visualize the marked gaps looking at the "valid" field
-    if (measurements.empty()) return;
-    sensor_msgs::LaserScan msg;
-    msg.header.frame_id = "base_laser_link";
-    msg.header.stamp = ros::Time::now();
-    msg.angle_min = -2.35;
-    msg.angle_max = 2.35;
-    msg.angle_increment = measurements[1].angle - measurements[0].angle;
-    msg.range_min = 0;
-    msg.range_max = 30;
-    msg.ranges.resize(measurements.size());
-    msg.intensities.resize(measurements.size());
-    for (size_t i=0; i<measurements.size(); i++){
-        float intensity = 0.5;
-        if (measurements[i].valid) intensity=1;
-        msg.ranges[i] = measurements[i].length;
-        msg.intensities[i] = intensity;
-    }
-    pub_scan_vis_.publish(msg);
 }
