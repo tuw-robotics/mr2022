@@ -7,9 +7,7 @@ geometry_msgs::Pose2D current_pose;
 void callback_target(const geometry_msgs::PoseStamped &goal) {
     target_pose.x = goal.pose.position.x;
     target_pose.y = goal.pose.position.y;
-    target_pose.theta = goal.pose.orientation.w;
-
-    // ROS_INFO("goal received! %4.3f,%4.3f", goal_.x(), goal_.y());
+    target_pose.theta = 2 * atan2(goal.pose.orientation.z, goal.pose.orientation.w);
 }
 
 void callback_pose(const geometry_msgs::PoseWithCovarianceStamped &pose) {
@@ -79,7 +77,6 @@ void TargetPlannerNode::move() {
     if (pos_diff >= 0.25) {
         vel = 0.2;
 
-        std::cout << target_angle * 57.3 << " " << current_pose.theta * 57.3 << " | " << angle_diff * 57.3 << "\n";
         if (angle_diff > 0.3) {
             rot = 0.4;
         } else if (angle_diff < -0.3) {
