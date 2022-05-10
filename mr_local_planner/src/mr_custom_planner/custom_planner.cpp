@@ -19,7 +19,7 @@ void CustomPlanner::ai() {
     if (measurement_laser_.empty() || (goal_.x()==0 && goal_.y()==0)) {
         v = 0.0, w = 0.0;
     } else {
-
+        
         cv::Vec2d robot_pointing(cos(odom_.theta()), sin(odom_.theta()));
         cv::Vec2d odom2goal(goal_.x()-odom_.x(), goal_.y()-odom_.y());
 
@@ -40,9 +40,16 @@ void CustomPlanner::ai() {
         //check if rotation has been completed and if the timer to counteract oversteering has run down
         if(waiting_ && wait_count_==10){
             double dist = sqrt(pow(odom2goal(0),2)+pow(odom2goal(1),2));
-            v = 1.0;
-            if(dist<1){
+            v = 0.8;
+            if(dist<2){
                v = 0.0;
+               //if(abs(goal_.theta()-odom_.theta())>0.5){
+               // if(target_theta>odom_.theta())
+               //     w = 1.0;
+               // else if(target_theta<odom_.theta())
+               //     w = -1.0;
+               //}
+               
             }
         }else if(waiting_){
             wait_count_++;
