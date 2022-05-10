@@ -90,9 +90,10 @@ void Goto::plotLocal() {
         }
     }
     
-    double dt = duration_last_update_.total_microseconds() /1000000.;
-    double max_acc_tra = 1.5 * dt;
-    double max_acc_rot = 30.0 * dt;
+    //double dt = duration_last_update_.total_microseconds() /1000000.;
+    double dt = 1.0;
+    double max_acc_tra = config_.max_acc_tra * dt;
+    double max_acc_rot = config_.max_acc_rot * (180.0 / M_PI) * dt;
     double v = cmd_.v();
     double w = cmd_.w() * (180.0 / M_PI);
     
@@ -202,7 +203,8 @@ Point2D dist(double v, double w, double dt) {
 void Goto::fill_search_space(){
     if( measurement_laser_.size() == 0) return;
     
-    double dt = duration_last_update_.total_microseconds() /1000000.;
+    //double dt = duration_last_update_.total_microseconds() /1000000.;
+    double dt = 1.0;
     
     double laser_ang_min = measurement_laser_[0].angle;
     double laser_ang_max = measurement_laser_[measurement_laser_.size() - 1].angle;
@@ -221,7 +223,8 @@ void Goto::fill_search_space(){
             size_t index = (p_laser.angle() - laser_ang_min) / laser_and_range * (measurement_laser_.size() - 1);
             
             //TODO: update this condition to proper one from slide 7
-            if(measurement_laser_[index].length < p_laser.radius()){
+            double laser_dist = std::max(0.0, measurement_laser_[index].length - config_.safe_zone);
+            if(laser_dist < p_laser.radius()){
                 //not allowed
                 Vs_.at<uint8_t>(r,c) = 1;
             }else{
@@ -233,30 +236,42 @@ void Goto::fill_search_space(){
 }
 
 double Goto::NF(double v, double w, Pose2D target) {
-    double a = 1.0, b = 100.0, c = 1.0, d = 100.0;
+    double laser_max_range = 5.0;
     double ret;
     
     Point2D p = dist(v, w, 1.0);
+    Point2D p_g = pred_pose_.tf() * p;
     
-    double distance = (pred_pose_.tf() * p).distanceTo(target.position());
+    double distance_sub_goal = p_g.distanceTo(target.position());
+    double distance_goal = p_g.distanceTo(goal_.position());
     
-    ret = a * v + b / distance /* + c * ... + d * ... */;
+    ret =   config_.alpha * v +
+            config_.beta * (laser_max_range - distance_sub_goal) +
+            config_.gamma * (M_PI - abs(moro::angle_difference(target.theta(), pred_pose_.theta() + w ))) +
+            config_.delta * (1.0 / distance_goal);
     
     return ret;
 }
 
 Command Goto::select_from_dw(Pose2D target)
-{    
-    double dt = duration_last_update_.total_microseconds() /1000000.;
-    double max_acc_tra = 1.5 * dt;
-    double max_acc_rot = M_PI/6.0 * dt;
+{
+    //double dt = duration_last_update_.total_microseconds() /1000000.;
+    double dt = 1.0;
+    double max_acc_tra = config_.max_acc_tra * dt;
+    double max_acc_rot = config_.max_acc_rot * dt;
     double v = cmd_.v();
     double w = cmd_.w();
     
-    int r_start = std::max(0, (int)((v - max_acc_tra) / 0.1));
-    int r_end   = std::min(Vs_.rows, (int)((v + max_acc_tra) / 0.1));
-    int c_start = std::max(0, (int)((w + M_PI/2.0 - max_acc_rot) / 0.0349066));
-    int c_end   = std::min(Vs_.cols, (int)((w + M_PI/2.0 + max_acc_rot) / 0.0349066));
+    //determining window range
+    double dw_v_min = std::max(0.0, (v - max_acc_tra));
+    double dw_v_max = std::min(config_.max_v, (v + max_acc_tra));
+    double dw_w_min = std::max(-config_.max_w, (w - max_acc_rot));
+    double dw_w_max = std::min(config_.max_v, (w + max_acc_rot));
+    
+    int r_start = std::max(0, (int)(dw_v_min / 0.1));
+    int r_end   = std::min(Vs_.rows, (int)(dw_v_max / 0.1));
+    int c_start = std::max(0, (int)((dw_w_min + M_PI/2.0) / 0.0349066));
+    int c_end   = std::min(Vs_.cols, (int)((dw_w_max + M_PI/2.0) / 0.0349066));
     
     //ROS_INFO("row - s: %d, e: %d, n: %d", r_start, r_end, Vs_.rows);
     //ROS_INFO("col - s: %d, e: %d, n: %d", c_start, c_end, Vs_.cols);
@@ -288,7 +303,10 @@ void Goto::bug2() {
     /**
     * @ToDo 4.3 Avoid obstacle
     **/
-    if(loop_count_%2 != 0) return;
+    //do this here so that we have a working visualization of search space even if not going
+    fill_search_space();
+    
+    //if(loop_count_%2 != 0) return;
 
     if(goal_set_ && (!config_.use_path || path_set_) && updateTimestamp(ros::Time::now().toBoost())) {
         Pose2D target;
@@ -299,15 +317,13 @@ void Goto::bug2() {
             target = goal_;
         }
         
-        if(abs(moro::angle_difference(target.theta(), pred_pose_.theta())) < 0.1 &&
-            target.position().distanceTo(pred_pose_.position()) < 0.5
+        if(abs(moro::angle_difference(goal_.theta(), pred_pose_.theta())) < 0.2 &&
+            goal_.position().distanceTo(pred_pose_.position()) < 0.3
         ) {
             ROS_INFO("Target reached");
             cmd_.set(0.0, 0.0);
             goal_set_ = false;
         } else {
-        
-            fill_search_space();
             
             cmd_ = select_from_dw(target);
         }

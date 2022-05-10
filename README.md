@@ -66,9 +66,17 @@ To reach a goal location, the movement logic in `mr_goto` (found in the `bug1()`
 #### 4.3 Avoid obstacle
 Implemented by: Menno Haász, Jan Hadl
 
-Avoiding movable obstacles that are not in the map is tried in the `Goto::bug2()` function of `goto.cpp`, but as of right now, it is not finished yet. 
-
+Avoiding movable obstacles that are not in the map is tried in the `Goto::bug2()` function of `goto.cpp`.
 Driving around cave obstacles is achieved with the path planning implemented in exercise part 4.4, and an example can be seen in the corresponding section of this document.
+
+For an obstacle avoidant planner DWA has been chosen. Since this approach was very hard to implement, shortcuts had to be taken. In the end we got something that works in forgiving environments. Shortcuts:
+- Looking forward in trajectory was not implemented, instead the robot was slowed down which makes it easier for the robot to break.
+- The laser measurement is directly used for looking if a trajectory is feasible. This means that with significant curvature the laser in the direction of the end point of the trajectory is not enough.
+- The body of the robot is not accounted for. A safe zone has been added for the walls so that the robot doesnt get too close. I special situations (walls are veeery close at w > 90° or w < 90°).
+
+Figures showing command space:
+![command space](./images/command_space.png)
+![reference](./images/command_space_ref.png)
 
 #### 4.4 Plan
 Implemented by: Jan Hadl
