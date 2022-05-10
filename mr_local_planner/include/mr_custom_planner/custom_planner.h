@@ -27,6 +27,13 @@ public:
     
 protected:
 
+    //wait counter variables to counteract oversteering
+    int wait_count_;
+    bool waiting_;
+    
+    //variable to store the previous goal position
+    Pose2D prev_goal_;
+
     Command cmd_;  /// output variables  v, w
     Pose2D goal_;  /// goal pose in world coordinates
     Pose2D start_; /// start pose in world coordinates
