@@ -2,6 +2,7 @@
 ### 10.5.2022
 **Allacher Alexander, Voboril Florentina, Zehetner Clemens**
 
+To start our project run: roslaunch mr_local_planner target_planner.launch stage:=1 map:=line
 
 ## 0. Be able to use Git `[20/20]`
 Participating: Allacher, Voboril, Zehetner
@@ -21,11 +22,21 @@ Participating: Allacher
 ![](documentation_imgs/ue06_3.png)
 We can see that the tf is shown in rviz.
 
-## 4. Planner `[0/40]`
+## 4. Planner `[40/40]`
+Participating: Allacher, Voboril, Zehetner
+We are using our self localisation and we can operate the planner with rviz.
 
-### 4.1. New Node `[0/50]`
+### 4.1. New Node `[50/50]`
+Participating: Zehetner
 
-### 4.2. Simple, no Obstacle `[0/50]`
+### 4.2. Simple, no Obstacle `[50/50]`
+Participating: Allacher, Voboril, Zehetner
+
+First we selected the target in rviz:
+![](documentation_imgs/ue06_4.2.a.png)
+
+And then the robot is driving to the target and rotating into the goal direction.
+![](documentation_imgs/ue06_4.2.b.png)
 
 ### 4.3. Avoid obstacle `[0/50]`
 
