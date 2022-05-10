@@ -60,15 +60,30 @@ TargetPlannerNode::TargetPlannerNode(ros::NodeHandle &n) : TargetPlanner(), n_(n
 }
 
 void TargetPlannerNode::move() {
-    /*tf::StampedTransform transform;
-    if (tf_listener_->frameExists("/map")) {
-        tf_listener_->lookupTransform("/map", "/odom", ros::Time(0), transform);
-    }*/
+    double dx = 0;
+    double dy = 0;
+    double angle_diff = 0;
+    // switch were position comes from
+    if(true){
+        tf::StampedTransform transform;
+        if (tf_listener_->frameExists("/odom")) {
+            tf_listener_->lookupTransform("/odom", "/base_footprint", ros::Time(0), transform);
+        }
 
-    double dx = target_pose.x - current_pose.x;
-    double dy = target_pose.y - current_pose.y;
-    double target_angle = std::atan2(dy, dx);
-    double angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_pose.theta));
+        dx = target_pose.x - transform.getOrigin().x();
+        dy = target_pose.y - transform.getOrigin().y();
+        double target_angle = std::atan2(dy, dx);
+        auto rotation = transform.getRotation();
+        auto current_angle = 2 * atan2(rotation.z(), rotation.w());
+        angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_angle));
+    }
+    else{
+        dx = target_pose.x - current_pose.x;
+        dy = target_pose.y - current_pose.y;
+        double target_angle = std::atan2(dy, dx);
+        angle_diff = moro::angle_difference(moro::angle_normalize(target_angle), moro::angle_normalize(current_pose.theta));
+
+    }
     double pos_diff = sqrt(dx * dx + dy * dy);
 
 
