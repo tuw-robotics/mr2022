@@ -34,13 +34,12 @@ by Nino Wegleitner
 Tf from map to base_link was already broadcasted in earlier exercise. A tf listener was implemented in the local_planner and the current robot pose is calculated from there.
 
 ## 4.0 Planner (40 / 40 Points)
-by Gerhard Jungwirth
 
 * we are using self-localisation in the planner which is implemented in local_planer
 * planner can be operated using RViz
 * see screenshot in 4.2 below
 
-## 4.1 New Node (50 Points)
+## 4.1 New Node (50 / 50 Points)
 by Gerhard Jungwirth
 
 * Similar behaviour as in local-planner
@@ -55,6 +54,7 @@ by Gerhard Jungwirth
 same launchfiles as before but in mode:=4:
 * `roslaunch mr_local_planner planner.launch stage:=1 mode:=4 world:=line.world`
 * `rosrun mr_self_localization mr_self_localization_node cmd:=cmd_vel scan:=base_scan _mode:=1 _initial_with_ground_truth:=true _plot_data:=true _kalman_filter/enable_correction:=true _kalman_filter/enable_data_association:=true _kalman_filter/enable\_prediction:=true _map_image:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.png" _map_lines:="$MR_DIR/src/mr2022/mr_self_localization/maps/line.yml"`
+the planner can be operated and the goal set in rviz
 
 State Machine based simple approach:
 
