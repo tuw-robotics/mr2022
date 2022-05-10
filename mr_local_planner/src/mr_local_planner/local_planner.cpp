@@ -314,26 +314,46 @@ void LocalPlanner::goto_plan() {
     /// wait to have a path
     if (path_.empty()) return;
 
-    double lookahead = 1.0;
+    const double lookahead = 1.0;
+    const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
+    const double alignmentTolerance = 0.05;
 
-    ROS_INFO_STREAM("Mode: " << action_state_);
+    std::tuple<double, double> cmd;
     switch (action_state_) {
         case WAIT:
             break;
-        case TRACK:
-            if (this->nextWaypointReachable(lookahead)) {
-                path_tracking(lookahead);
+        case TRACK:{
+            if (path_.empty()) break;
+            // find target along global path
+            int waypoint_index = this->getNextWaypointID(lookahead);
+            targetWaypoint_ = this->path_[waypoint_index];
+            // check reachibility of target waypoint
+            if (this->nextWaypointReachable(targetWaypoint_)) {
+                cmd = path_tracking(targetWaypoint_, lookahead);
             } else {
                 ROS_INFO_THROTTLE(1, "can't see path, using local planner");
-                this->alternative_planner();
+                cmd = this->alternative_planner();
+            }
+
+            if (waypoint_index == path_.size() - 1 && std::get<0>(cmd) < zeroSpeedTolerance){
+                ROS_INFO_STREAM("Mode: ALIGN");
+                action_state_ = ActionState::ALIGN;
             }
             break;
-        case ALIGN:
-            final_alignment();
+        }
+        case ALIGN:{
+            cmd = final_alignment();
+            // eventually change state
+            if (abs(std::get<1>(cmd)) < alignmentTolerance ){
+                ROS_INFO_STREAM("Mode: WAIT");
+                action_state_ = ActionState::WAIT;
+            }
             break;
+        }
         case REPLAN:
             break;
     }
+    cmd_.set(std::get<0>(cmd), std::get<1>(cmd));
 }
 
 int LocalPlanner::getNextWaypointID(const double lookahead) {
@@ -361,7 +381,7 @@ int LocalPlanner::getNextWaypointID(const double lookahead) {
 }
 
 
-void LocalPlanner::path_tracking(double lookahead) {
+std::tuple<double, double> LocalPlanner::path_tracking(Pose2D targetWaypoint, double lookahead) {
     /**
      * Geometric algorithm to track path: control steer and speed w.r.t. the closest waypoint > lookahead distance.
      * Simple proportional control, no fancy steering (e.g., pure pursuit).
@@ -371,12 +391,9 @@ void LocalPlanner::path_tracking(double lookahead) {
      */
     // parameters
     double maxsteer = 0.5, maxspeed = 0.8;
-    const double zeroSpeedTolerance = 0.1;  // to change state to final alignment
     Pose2D& pose = this->transform_;
 
     // transform selected target to robot frame
-    int closestID = getNextWaypointID(lookahead);
-    targetWaypoint_ = path_[closestID];     // used in visualization
     auto target_robot = pose.tf().inv() * targetWaypoint_.position();
 
     // compute lateral control
@@ -395,31 +412,21 @@ void LocalPlanner::path_tracking(double lookahead) {
         speed = maxspeed / 2 * normDist;
     }
     // set command
-    cmd_.set(speed, steer);
-    // finally, if reached the target, align with its orientation
-    if (closestID == path_.size() - 1 && speed <= zeroSpeedTolerance) {
-        action_state_ = ActionState::ALIGN;
-    }
+    return std::make_tuple(speed, steer);
 }
 
-void LocalPlanner::final_alignment() {
+std::tuple<double, double> LocalPlanner::final_alignment() {
     /// perform inplace rotation to align the robot heading to the final pose
     /// when reach almost zero error, move to "WAIT" state
     const double ks = 0.5;  // proportional gain
-    const double errTolerance = 0.01;
     double speed = 0, steer = 0;
     // compute error w.r.t. last waypoint
     Pose2D lastWaypoint = path_[path_.size() - 1];
-    double normError = angle_normalize(angle_difference(this->transform_.theta(), lastWaypoint.theta())) / M_PI;
+    double normError = angle_normalize(angle_difference(lastWaypoint.theta(), this->transform_.theta())) / M_PI;
     steer = ks * normError;
-    // set command
-    cmd_.set(speed, -steer);
-    // eventually change state
-    if (abs(steer) < errTolerance ){
-        action_state_ = ActionState::WAIT;
-    }
     // debug
     ROS_DEBUG_STREAM("[Mode ALIGN] norm error: " << normError << ", speed : " << speed << ", steer: " << steer);
+    return std::make_tuple(speed, steer);
 }
 
 void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transform, geometry_msgs::TransformStamped& new_laser_transform) {
@@ -444,20 +451,16 @@ void LocalPlanner::updateTransform(geometry_msgs::TransformStamped& new_transfor
     laser_transform_.set_theta(laser_yaw);
 }
 
-bool LocalPlanner::nextWaypointReachable(double lookahead) {
-    if (path_.empty())
-        return false;
+bool LocalPlanner::nextWaypointReachable(Pose2D targetWaypoint) {
 
     const double angle_min = -2.3561945;
     const double angle_max = 2.3561945;
     const double angle_increment = 0.0175181739;
 
-    int waypoint_index = this->getNextWaypointID(lookahead);
-    Pose2D target_waypoint = this->path_[waypoint_index];
-    Point2D target_waypoint_laser = this->laser_transform_.tf().inv() * target_waypoint.position();
+    Point2D target_waypoint_laser = this->laser_transform_.tf().inv() * targetWaypoint.position();
     Polar2D target_waypoint_polar(target_waypoint_laser);
 
-    double distance = target_waypoint.position().distanceTo(this->transform_.position());
+    double distance = targetWaypoint.position().distanceTo(this->transform_.position());
     double ray_calc = (target_waypoint_polar.alpha() - angle_min) / angle_increment;
 
     if (ray_calc < 0.0 || ray_calc > (double) this->measurement_laser_.size()) {    // we can't see the point so we don't even have to try
@@ -473,6 +476,6 @@ bool LocalPlanner::nextWaypointReachable(double lookahead) {
     return true;
 }
 
-void LocalPlanner::alternative_planner() {
-    this->cmd_.set(0.0, 0.0);
+std::tuple<double, double> LocalPlanner::alternative_planner() {
+    return std::make_tuple(0.0, 0.0);
 }

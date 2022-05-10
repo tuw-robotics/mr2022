@@ -28,10 +28,6 @@ rospkg~=1.4.0
 2. Set `2D Nav Goal` using RViz
 3. You should see the path in purple
 
-### local planning with PurePursuit
-1. Set the path as previous point.
-2. You should see the next waypoint in green
-
 ## Documentation
 ### Publish the used map. (45 Points)
 1. Start like described in _Basic startup_.
@@ -63,10 +59,11 @@ rospkg~=1.4.0
 * * We have added separate nodes.
 
 #### Simple, no Obstacle
-* Your vehicle can drive to a goal location and stops there. (25 Points)
-* * Working. How to use, see section in _Initialize self-localization and trigger driving using RViz_.
-* Your vehicle can drive to a goal location, stops there and turns into the correct pose. (25 Points)
-* * TODO: turn afterwards.
+1. Start like described in _Initialize self-localization and trigger driving using RViz_.
+2. You will see the robot tracking the global path by aiming to an intermediate waypoint (green marker). (25 Points)
+3. Once reached the goal location it starts turning inplace to align with the correct pose. (25 Points)
+4. The following animation shows the local planner in action (*speed x2*).
+![goto](images/mr_goto.gif)
 
 #### Avoid obstacle
 * Your vehicle can drive to a goal location even if there is obstacle with 1x1m (movable box) in size in between. (25 Points)
