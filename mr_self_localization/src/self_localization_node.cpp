@@ -267,7 +267,7 @@ void SelfLocalizationNode::publishPoseEstimated() {
     /// publishes motion command
     pub_pose_estimated_.publish(pose_);
 
-    // pose of robot
+    /*// pose of robot
     tf::Quaternion q;
     q.setRPY(0, 0, pose_estimated_.theta());
     tf::Transform tf_pose(q, tf::Vector3(pose_estimated_.get_x(), pose_estimated_.get_y(), 0));
@@ -292,7 +292,7 @@ void SelfLocalizationNode::publishPoseEstimated() {
     stamped_tf.header.seq = pose_.header.seq;
     tf::transformTFToMsg(reverse_tf.inverse(), stamped_tf.transform);
 
-    tf_broadcaster_->sendTransform(stamped_tf);
+    tf_broadcaster_->sendTransform(stamped_tf);*/
 }
 
 
