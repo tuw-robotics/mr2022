@@ -41,7 +41,14 @@ public:
     void plot();                         /// plots sensor input
     
 protected:
-
+    
+    //wait counter variables to counteract oversteering
+    int wait_count_;
+    bool waiting_;
+    
+    //variable to store the previous goal position
+    Pose2D prev_goal_;
+    
     Command cmd_;  /// output variables  v, w
     unsigned long loop_count_; /// counts the filter cycles
     Pose2D goal_;  /// goal pose in world coordinates
