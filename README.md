@@ -9,9 +9,10 @@
 
 ### Dependencies
 ```
-scipy
-scikit-image==0.17.2
-pyyaml
+scipy~=1.8.0
+scikit-image~=0.19.2
+pyyaml~=6.0
+rospkg~=1.4.0
 ```
 
 ### Basic startup
