@@ -54,7 +54,7 @@ rospkg~=1.4.0
 
 ### Planner
 * Our planner is using our self-localization (20 Points):
-* * TODO: We should be able to use `/pose_estimated` instead of `/odom`
+  * It does that by subscribing to the TF tree and reading the transformation for every controller iteration.
 * Your planner can be operated with Rviz (20 Points)
 * * See section in _Initialize self-localization and trigger driving using RViz_.
 
@@ -70,6 +70,7 @@ rospkg~=1.4.0
 
 #### Avoid obstacle
 * Your vehicle can drive to a goal location even if there is obstacle with 1x1m (movable box) in size in between. (25 Points)
+  * If the local planner is not able to navigate to the next waypoint because it is obstructed it switches to an alternative controller.
 * * TODO: ...
 * Your vehicle can drive to a goal location even if there is a cave obstacle such the one [-5,-3] in between. (25 Points)
 * * TODO: ...

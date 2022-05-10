@@ -7,6 +7,8 @@
 
 import os
 import argparse
+
+import tf2_ros
 import yaml
 import numpy as np
 import scipy.interpolate as si
@@ -37,6 +39,8 @@ class GlobalPlanner(object):
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback, queue_size = 1)
         rospy.Subscriber('/pose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback, queue_size = 1)
+        self.tfBuffer = tf2_ros.Buffer()
+        self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
         self.path_publisher = rospy.Publisher('/waypoints', Path, queue_size=1)
         
         self.initpose = PoseWithCovarianceStamped()
@@ -254,9 +258,10 @@ class GlobalPlanner(object):
             rospy.loginfo("GlobalPlanner: map not yet received")
         else:
             rospy.loginfo("GlobalPlanner: goal_callback received")
-            
-            self.world_starting_position[0] = self.initpose.pose.pose.position.x
-            self.world_starting_position[1] = self.initpose.pose.pose.position.y
+
+            starting_position = self.tfBuffer.lookup_transform("map", "base_link", rospy.Time(0))
+            self.world_starting_position[0] = starting_position.transform.translation.x # self.initpose.pose.pose.position.x
+            self.world_starting_position[1] = starting_position.transform.translation.y # self.initpose.pose.pose.position.y
             self.grid_starting_position = np.divide(self.world_starting_position - self.origin, self.resolution)
             self.grid_starting_position[1] = self.image_shape[1] - self.grid_starting_position[1] - 1
             self.grid_starting_position = self.grid_starting_position.astype(int)
