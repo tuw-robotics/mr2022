@@ -1,8 +1,10 @@
-# mr2022
-## Team members
+# 6. GoTo | mr2022
 
+
+## Team 'cyan' members
 * Schmidt, Franz
 * Windischbauer, Johannes
+
 
 ## Documentation
 
@@ -32,11 +34,22 @@ The planner repeatingly updates the transform for the robot pose which is provid
 
 ### 4. Planner
 #### 4.1 New Node (50p)
-
 The mr_goto node is a new python node and already connects to the scan messages and publishes velocity commands. At the moment the driving is overcomplicated and can possibly be simplified quite easily.
 
 
 ### 5. Using git to merge project
+The project was developed in a git repository and finally merged with the original project it was forked from.
+
+
+### 6. Point distribution
+|                                       | Schmidt | Windischbauer |
+| ------------------------------------- | ------- | ------------- |
+| 1. publish map                        | -       | 45            |
+| 2. localization and driving with RViz | 50      | -             |
+| 3. connect localization and planner   | 45      | -             |
+| 4. planner / goto                     | -       | 50            |
+| using git                             | 10      | 10            |
+
 
 
 
