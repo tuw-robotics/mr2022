@@ -57,6 +57,14 @@ protected:
     void bug2();            /// Bug2 behavior
     void plotLocal();       /// plots sensor input in robot coordinates
     mr_goto::GotoConfig config_;
+    
+    // Members and functions for DWA
+    cv::Mat Vs_; /// DWA search space
+    Figure figure_search_space_;  /// Figure for command visualization
+    
+    void fill_search_space();
+    Command select_from_dw(Pose2D target);
+    double NF(double v, double w, Pose2D target);
 };
 }
 

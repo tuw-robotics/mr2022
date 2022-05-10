@@ -2,7 +2,7 @@
 <launch>
   <arg name="world" default="cave.world" />
   <arg name="stage" default="false" />
-  <arg name="mode" default="1" />
+  <arg name="mode" default="2" />
   <arg name="use_path" default="true"/>
   <arg name="path_lookahead" default="5"/>
   <arg name="plot_data" default="true" />
