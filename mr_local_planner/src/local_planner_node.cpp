@@ -108,16 +108,7 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
         measurement_laser_ [i].length  = _laser.ranges[i];
         measurement_laser_ [i].angle  = _laser.angle_min + _laser.angle_increment*i;
         measurement_laser_ [i].end_point  = Point2D(0.22+cos(measurement_laser_[i].angle)*measurement_laser_[i].length, sin(measurement_laser_[i].angle)*measurement_laser_[i].length);
-    }
-    try {
-        tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
-        ROS_INFO_STREAM("tfListener: Origin:" << transform_.getOrigin().x() << ", " << transform_.getOrigin().y() << ", Rotation: " 
-        << transform_.getRotation().x() << ", " << transform_.getRotation().y() << ", " << transform_.getRotation().z() << ", " << transform_.getRotation().w());
-    } catch ( tf::TransformException ex ) {
-        ROS_ERROR ( "%s",ex.what() );
-        ros::Duration ( 1.0 ).sleep();
-    }
-    
+    }    
 #endif
 }
 /**

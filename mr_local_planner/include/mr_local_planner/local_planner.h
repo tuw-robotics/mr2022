@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <mr_geometry/geometry.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+#include <tf/transform_listener.h>
 
 namespace moro {
 /**
@@ -62,6 +63,11 @@ protected:
     void tangensbug();      /// Tangensbug behavior
     void plotLocal();       /// plots sensor input in robot coordinates
     mr_local_planner::LocalPlannerConfig config_;
+
+    void calculateCurrentPosefromTF(); /// callback function for timer
+    tf::StampedTransform transform_;
+    tf::TransformListener tf_listener_;
+    Pose2D pose_from_tf_;
 };
 }
 

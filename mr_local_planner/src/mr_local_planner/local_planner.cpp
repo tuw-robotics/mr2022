@@ -173,13 +173,37 @@ void LocalPlanner::wanderer2() {
     cmd_.set ( 0.4, 0.4 );
 }
 
+void LocalPlanner::calculateCurrentPosefromTF() {
+
+    try {
+        tf_listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
+        ROS_INFO_STREAM("tfListener: Origin:" << transform_.getOrigin().x() << ", " << transform_.getOrigin().y() << ", Rotation: " 
+        << transform_.getRotation().x() << ", " << transform_.getRotation().y() << ", " << transform_.getRotation().z() << ", " << transform_.getRotation().w());
+    } catch ( tf::TransformException ex ) {
+        ROS_ERROR ( "%s",ex.what() );
+        ros::Duration ( 1.0 ).sleep();
+    }
+
+    double roll = 0, pitch = 0, yaw = 0;
+    transform_.getBasis().getRPY ( roll, pitch, yaw );
+
+    pose_from_tf_ = Pose2D(transform_.getOrigin().x(), transform_.getOrigin().y(), yaw);
+
+}
 
 void LocalPlanner::bug1() {
     /**
     * @ToDo Bug1
     * use goal_, start_ and odom_
     **/
+
+    /// if using estimated form instead of odom
+    if(true) {
+        calculateCurrentPosefromTF();
+        odom_ = pose_from_tf_;
+    }
     double v = 0.0, w = 0.0;
+ 
 
     if ( action_state_ != ActionState::NA ) {
 
@@ -204,6 +228,13 @@ void LocalPlanner::bug1() {
             }
         }
         if ( action_state_ == ActionState::STRAIGHT ) {
+            if ( angle_difference(goal_direction, current_orientation) > 0.2 ) {
+                w = 0.2;
+            } else if ( angle_difference(goal_direction, current_orientation) < -0.2 ) {
+                w = -0.2;
+            } else {
+                w = 0;
+            }
             if (goal_distance > 0.2) {
                 v = 0.2;
             } else {

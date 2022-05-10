@@ -35,8 +35,6 @@ private:
     ros::Subscriber sub_move_base_simple_goal_;
     void callbackMoveBaseSimpleGoal ( const geometry_msgs::PoseStamped& ); 
 
-    tf::StampedTransform transform_;
-    tf::TransformListener tf_listener_;
 };
 
 #endif // PLANNER_LOCAL_NODE_H
