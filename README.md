@@ -66,6 +66,8 @@ To reach a goal location, the movement logic in `mr_goto` (found in the `bug1()`
 #### 4.3 Avoid obstacle
 Implemented by: Menno Haász, Jan Hadl
 
+Avoiding movable obstacles that are not in the map is tried in the `Goto::bug2()` function of `goto.cpp`, but as of right now, it is not finished yet. 
+
 Driving around cave obstacles is achieved with the path planning implemented in exercise part 4.4, and an example can be seen in the corresponding section of this document.
 
 #### 4.4 Plan
@@ -98,7 +100,7 @@ In the following figures, the navigation process can be seen in full. At first, 
 |                           4. Planner                           |   40   |
 |                          4.1 New Node                          |   50   |
 |                     4.2 Simple, no Obstacle                    |   50   |
-|                       4.3 Avoid obstacle                       |   50   |
+|                       4.3 Avoid obstacle                       |   25   |
 |                            4.4 Plan                            |   100  |
 |                            GIT merge                           |   20   |
-|                              Total                             |   450  |
+|                              Total                             |   425  |
