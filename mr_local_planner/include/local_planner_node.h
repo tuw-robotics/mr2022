@@ -10,6 +10,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <mr_local_planner/local_planner.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+
 /**
  * class to cover the ros communication
  **/
