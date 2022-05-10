@@ -303,7 +303,7 @@ void SelfLocalizationNode::publishMap () {
 
     map_seq_idx_++;
 
-    mapMessage.info.map_load_time = stamp; // FIXME: Check if this is the correct value to publish
+    mapMessage.info.map_load_time = stamp;
     mapMessage.info.origin = originPose;
     mapMessage.info.width = width;
     mapMessage.info.height = height;
@@ -318,7 +318,7 @@ void SelfLocalizationNode::publishMap () {
     cv::Mat imageGray = cv::imread(filename_map_image_, cv::IMREAD_GRAYSCALE);
     cv::Mat matData;
     cv::Mat imageGrayFlipped;
-    cv::flip(imageGrayFlipped, imageGray, 1);
+    cv::flip(imageGray, imageGrayFlipped, 1);
     cv::threshold(imageGrayFlipped, matData, 100, 100, cv::THRESH_BINARY_INV); // NOTE: We expect the map to be black/white
     cv::Mat flattened = matData.reshape(1, matData.total());
     std::vector<int8_t> vecData = flattened.clone();
