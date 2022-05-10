@@ -2,11 +2,13 @@
 
 <launch>
     <include file="$(find mr_goto)/launch/mr_wall_follow.launch">
-        <arg name="max_speed"  value="3.0"/>
-        <arg name="min_speed"  value="1.0"/>
+        <arg name="max_speed"  value="1.0"/>
+        <arg name="min_speed"  value="0.2"/>
     </include>
     
     <arg name="map"  default="line.yaml"/>
     <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/maps/$(arg map)"/>
+    
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_goto)/launch/goto.rviz" output="screen"/>
 
 </launch>

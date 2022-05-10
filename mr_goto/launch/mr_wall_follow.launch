@@ -9,14 +9,14 @@
         <arg name="map_frame"  value="$(arg map_frame)"/>
     </include>-->
 
-    <arg name="gain_p"  default="0.32"/>
+    <arg name="gain_p"  default="0.15"/>
     <arg name="gain_i"  default="0.0"/>
     <arg name="gain_d"  default="0.0"/>
     <arg name="theta_lidar"  default="42"/>
     <arg name="dynamic_distance"  default="false"/>
     <arg name="desired_distance"  default="0.5"/>
     <arg name="max_speed"  default="0.6"/>
-    <arg name="min_speed"  default="0.0"/>
+    <arg name="min_speed"  default="0.2"/>
     <node name="mr_goto" pkg="mr_goto" type="mr_goto.py" output="screen">
         <param name="gain_p"  value="$(arg gain_p)"/>
         <param name="gain_i"  value="$(arg gain_i)"/>
