@@ -10,7 +10,7 @@ import rospy
 from std_msgs.msg import Float64
 from sensor_msgs.msg import LaserScan
 from ackermann_msgs.msg import AckermannDriveStamped
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, PoseStamped
 
 from dynamic_reconfigure.server import Server
 
@@ -89,19 +89,24 @@ class WallFollow:
         #Topics & Subs, Pubs
         lidarscan_topic = '/base_scan'
         drive_topic = '/cmd_vel'
-        #alpha_topic = '/alpha'
-        #dist_topic = '/dist_left'
-        #dist_lookahead_topic = '/dist_lookahead'
-        #error_topic = '/err'
-        #integral_topic = '/integral'
+        pose_topic = '/pose_estimated'
+        goal_topic = '/move_base_simple/goal'
 
+        self.goal = rospy.Subscriber(goal_topic, PoseStamped, self.goal_callback)
+        self.pose = rospy.Subscriber(pose_topic, PoseWithCovarianceStamped, self.pose_callback) 
         self.lidar_sub = rospy.Subscriber(lidarscan_topic, LaserScan, self.lidar_callback)
         self.drive_pub = rospy.Publisher(drive_topic, Twist, queue_size=10)
-        #self.alpha_pub = rospy.Publisher(alpha_topic, Float64, queue_size=10)
-        #self.error_pub = rospy.Publisher(error_topic, Float64, queue_size=10)
-        #self.dist_left_pub = rospy.Publisher(dist_topic, Float64, queue_size=10)
-        #self.dist_lookahead_pub = rospy.Publisher(dist_lookahead_topic, Float64, queue_size=10)
-        #self.integral_pub = rospy.Publisher(integral_topic, Float64, queue_size=10)
+        
+
+    def pose_callback(self, data):
+        #rospy.loginfo("pose callback data: %s", data)
+        pass
+
+   
+    def goal_callback(self, data):
+        #rospy.loginfo("goal callback data: %s", data)
+        pass
+
         
     def getRange(self, data, angle):
         # data: single message from topic /scan
@@ -123,6 +128,7 @@ class WallFollow:
         else:
             # rospy.loginfo("Invalid data: " + str(result))
             return 10.0  # TODO better error handling
+
 
     def pid_control(self, error):
         global integral
@@ -170,24 +176,11 @@ class WallFollow:
         prev_error = error
         prev_time = time
 
-        #drive_msg = AckermannDriveStamped()
-        #drive_msg.header.stamp = rospy.Time.now()
-        #drive_msg.header.frame_id = "laser"
-        #drive_msg.drive.steering_angle = angle
-        #drive_msg.drive.speed = velocity
         drive_msg = Twist()
         drive_msg.linear.x = velocity
         drive_msg.angular.z = angle
         self.drive_pub.publish(drive_msg)
-
-        # debugging messages
-        #error_msg = Float64()
-        #error_msg.data = error
-        #self.error_pub.publish(error_msg)
-
-        #integral_msg = Float64()
-        #integral_msg.data = integral
-        #self.integral_pub.publish(integral_msg)
+        
 
     def followLeft(self, data, leftDist):
         global velocity
@@ -222,27 +215,15 @@ class WallFollow:
                 leftDist = MAX_WALL_DISTANCE
 
         error = dist_wall_lookahead - leftDist
-       
-        ## debugging messages
-        #alpha_msg = Float64()
-        #alpha_msg.data = alpha
-        #self.alpha_pub.publish(alpha_msg)
-
-        #dist_msg = Float64()
-        #dist_msg.data = dist_wall
-        #self.dist_left_pub.publish(dist_msg)
-
-        #dist_lookahead_msg = Float64()
-        #dist_lookahead_msg.data = dist_wall_lookahead
-        #self.dist_lookahead_pub.publish(dist_lookahead_msg)
 
         return error 
+    
 
     def lidar_callback(self, data):
         """ 
         """
         error = self.followLeft(data, DESIRED_DISTANCE_LEFT)    
-        self.pid_control(error)
+        #self.pid_control(error)
         
 
 def main(args):
@@ -253,6 +234,7 @@ def main(args):
         srv = Server(GainsConfig, reconfig_callback)
     rospy.sleep(0.1)
     rospy.spin()
+
 
 if __name__=='__main__':
 	main(sys.argv)

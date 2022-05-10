@@ -25,7 +25,7 @@ int main ( int argc, char **argv ) {
         /// plots measurements
         self_localization.plot();
         
-        self_localization.publishParticles();
+//         self_localization.publishParticles();
         self_localization.publishMapToOdomTf();
 
         /// calls all callbacks waiting in the queue
