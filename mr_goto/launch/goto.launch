@@ -5,16 +5,17 @@
         <arg name="max_speed"  value="1.0"/>
         <arg name="min_speed"  value="0.2"/>
     </include>-->
+<!--     
+    <arg name="planner_mode" default="4" />
     
-    <!-- <arg name="planner_mode" default="4" /> -->
-    
-    <!--<node pkg="mr_local_planner" type="mr_local_planner_node" name="local_planner" output="screen">
+    <node pkg="mr_local_planner" type="mr_local_planner_node" name="local_planner" output="screen">
         <param name="mode" value="$(arg planner_mode)" />
         <param name="plot_data" value="true" />
         <remap from="scan" to="base_scan" />
         <remap from="cmd_vel" to="cmd_vel" />
         <remap from="odom" to="odom" />
-    </node>-->
+    </node> -->
+
     
     <!--<arg name="map_ref"  default="map"/>
     <arg name="map"  default="cave"/>
@@ -23,7 +24,11 @@
     <arg name="map"  default="line"/>
     <arg name="room" default="maps" />
     <!--<arg name="cfg" default="particle_filter.yaml" />-->  <!-- particle_filter.yaml, ekf.yaml -->
-    
+
+    <!-- <include file="$(find stage_ros)/launch/world.launch">
+      <arg name="world" default="$(arg map).world" />
+    </include> -->
+
     <!--<node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/$(arg room)/$(arg map_ref).yaml"/>-->
     
     <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
@@ -39,10 +44,10 @@
         <param name="plot_data" value="true" />
         <param name="initial_with_ground_truth" value="true" />
         <!--<param name="reinitialize" value="false" />-->
-        
+<!--         
         <param name="kalman_filter/enable_correction" value="true" />
         <param name="kalman_filter/enable_data_association" value="true" />
-        <param name="kalman_filter/enable_prediction" value="true" />
+        <param name="kalman_filter/enable_prediction" value="true" /> -->
         
         <!--<param name="particle_filter/initial_distribution" value="2" />
         <param name="particle_filter/nr_of_samples" value="5000" />
@@ -55,6 +60,8 @@
         <param name="particle_filter/sigma_static_position" value="0.1" />
         <param name="particle_filter/sigma_static_orientation" value="0.1" />-->
     </node>
+
+    <node  name="mr_goto" pkg="mr_goto" type="mr_goto.py" output="screen"/>
     
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_goto)/launch/goto.rviz" output="screen"/>
 

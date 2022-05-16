@@ -4,12 +4,9 @@ from calendar import c
 from re import T
 import sys
 import math
-from turtle import left, speed
 
 #ROS Imports
 import rospy
-from std_msgs.msg import Float64
-from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, PoseStamped
 from nav_msgs.msg import Odometry
 import tf
@@ -27,7 +24,7 @@ def angle_normalize(angle):
 
 class GoTo:
     def __init__(self):
-        rospy.loginfo("Hello from wall_follow node")
+        rospy.loginfo("Hello from goto node")
 
         #Topics & Subs, Pubs
         drive_topic = '/cmd_vel'
@@ -74,7 +71,7 @@ class GoTo:
 
         try:
         # if listener.frameExists('odom'):
-            (trans, rota) = self.listener.lookupTransform('/odom', '/base_footprint', rospy.Time(0))
+            (trans, rota) = self.listener.lookupTransform('/base_footprint', '/odom', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             print('tf exception thrown')
             return
@@ -86,12 +83,49 @@ class GoTo:
         print(trans)
         print(rota)
 
-            
-        cmd = Twist()
-        cmd.linear.x = 2.0
-        cmd.angular.z = 2.0
-        print(cmd)
-        self.drive_pub.publish(cmd)
+        if self.goal_pose:
+            dx = self.goal_pose.pose.position.x - trans[0]
+            dy = self.goal_pose.pose.position.y - trans[1]
+            target_angle = math.atan2(dx, dy)
+            current_angle = math.atan2(rota[2], rota[3])
+            angle_diff = angle_difference(angle_normalize(target_angle), angle_normalize(current_angle))
+            pose_diff = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+
+            vel = 0.0
+            rot = 0.0
+            if pose_diff > 0.25:
+                vel = 0.2
+                if angle_diff > 0.3:
+                    rot = 0.4
+                elif angle_diff < -0.3:
+                    rot = -0.4
+                elif angle_diff > 0.1:
+                    rot = 0.2
+                elif angle_diff < -0.1:
+                    rot = -0.2
+                else:
+                    vel = 0.5
+            else:
+                target_angle_diff = angle_difference(
+                    angle_normalize(
+                        2 * math.atan2(
+                            self.goal_pose.pose.orientation.z, 
+                            self.goal_pose.pose.orientation.w)),
+                    angle_normalize(
+                        rota[3]
+                    ))
+
+                if target_angle_diff > 0.08:
+                    rot = 0.15
+                elif target_angle_diff < -0.08:
+                    rot = -0.15
+
+
+            cmd = Twist()
+            cmd.linear.x = vel
+            cmd.angular.z = rot
+            print(cmd)
+            self.drive_pub.publish(cmd)
 
         #if goal_pose: 
             #rospy.loginfo("I like to move it")
