@@ -89,7 +89,11 @@ class GoTo:
         goal_angle_diff = angle_difference(goal_angle, current_orientation)
 
         if self.movement_pattern == 1:
-            if angle_diff > 0.2:
+            if angle_diff > 0.6:
+                rotation = 0.5
+            elif angle_diff < -0.6:
+                rotation = -0.5
+            elif angle_diff > 0.2:
                 rotation = 0.1
             elif angle_diff < -0.2:
                 rotation = -0.1
@@ -99,13 +103,19 @@ class GoTo:
         if self.movement_pattern == 2:
             if angle_diff > 0.2 or angle_diff < -0.2:
                 self.movement_pattern = 1
-            if position_diff > 0.2:
+            if position_diff > 1.0:
+                velocity = 0.7
+            elif position_diff > 0.2:
                 velocity = 0.2
             else:
                 print("Position matched")
                 self.movement_pattern = 3
         if self.movement_pattern == 3:
-            if goal_angle_diff > 0.1:
+            if goal_angle_diff > 0.6:
+                rotation = 0.5
+            elif goal_angle_diff < -0.6:
+                rotation = -0.5
+            elif goal_angle_diff > 0.1:
                 rotation = 0.05
             elif goal_angle_diff < -0.1:
                 rotation = -0.05
