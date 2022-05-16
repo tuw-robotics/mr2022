@@ -19,8 +19,10 @@ int main ( int argc, char **argv ) {
     while ( ros::ok() ) {
         
         try {
-            tf_listener_-> lookupTransform("map", "base_link", ros::Time(0), tf);
-            planner.callbackTransform(tf);
+            if (tf_listener_->frameExists("odom")) {
+                tf_listener_-> lookupTransform("odom", "base_link", ros::Time(0), tf);
+                planner.callbackTransform(tf);
+            }
         } catch(tf::TransformException ex) {
             ROS_ERROR ( "%s",ex.what() );
         }
@@ -74,7 +76,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
 #else
     /**
      * @node your code
-     **/
+     **/    
     sub_goal_ = n_.subscribe ( "move_base_simple/goal", 1, &LocalPlannerNode::callbackGoal, this );
     sub_odom_ = n_.subscribe ( "odom", 1, &LocalPlannerNode::callbackOdometry, this );
 #endif
