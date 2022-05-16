@@ -1,13 +1,42 @@
 <?xml version="1.0"?>
 
 <launch>
+    <arg name="map"  default="line"/>
+    <arg name="mode" default="0"/>
+    
+    <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/maps/$(arg map).yaml"/>
+    
+    <include file="$(find mr_local_planner)/launch/planner.launch">
+        <arg name="mode" value="$(arg mode)"/>
+        <arg name="world" value="$(arg map).world"/>
+        <arg name="stage" value="true"/>
+    </include>
+    
+<!--    TODO: figure out a way where the self localization does not break the rviz config  -->
+    
+<!--    <include file="$(find mr_self_localization)/launch/self_localization.launch">
+        <arg name="map" value="$(arg map)"/>
+    </include>-->
+    
+   <!-- <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
+        <param name="map_image" value="$(find mr_self_localization)/maps/$(arg map).png" />
+        <param name="map_lines" value="$(find mr_self_localization)/maps/$(arg map).yml" />
+        <param name="kalman_filter/enable_prediction" value="true"/>
+        <param name="kalman_filter/enable_data_association" value="true"/>
+        <param name="kalman_filter/enable_correction" value="true"/>
+        <param name="plot_data" value="true"/>
+        <param name="initial_with_ground_truth" value="true"/>
+        <param name="reinitialize" value="false"/>
+        <param name="mode" value="1"/>
+        <remap from="scan" to="base_scan" />
+        <remap from="cmd" to="cmd_vel" />
+        <remap from="odom" to="odom" />
+    </node> -->
+
     <include file="$(find mr_goto)/launch/mr_wall_follow.launch">
         <arg name="max_speed"  value="1.0"/>
         <arg name="min_speed"  value="0.2"/>
     </include>
-    
-    <arg name="map"  default="line.yaml"/>
-    <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/maps/$(arg map)"/>
     
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mr_goto)/launch/goto.rviz" output="screen"/>
 

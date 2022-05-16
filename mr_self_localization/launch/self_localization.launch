@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="cfg" default="particle_filter.yaml" />  <!-- particle_filter.yaml, ekf.yaml -->
+  <arg name="cfg" default="ekf.yaml" />  <!-- particle_filter.yaml, ekf.yaml -->
   <arg name="map" default="cave" />
   <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
     <rosparam file="$(find mr_self_localization)/cfg/$(arg cfg)" command="load"/>

@@ -264,27 +264,6 @@ void SelfLocalizationNode::publishPoseEstimated () {
     pub_pose_estimated_.publish ( pose_ );
 }
 
-/*void SelfLocalizationNode::publishMapToOdomTf() {
-    tf::Stamped<tf::Pose> odom_to_map;
-    try {
-        tf::Transform tmp_tf(
-            tf::createQuaternionFromYaw(pose_estimated_.theta()),
-            tf::Vector3(pose_estimated_.x(), pose_estimated_.y(), 0.0));
-        tf::Stamped<tf::Pose> tmp_tf_stamped (
-            tmp_tf.inverse(), ros::Time::now(), "base_footprint");
-        tf_listener_->transformPose("odom", tmp_tf_stamped, odom_to_map);
-    } catch(tf::TransformException) {
-        std::cout<<"failed to subtract"<<std::endl;
-        ROS_DEBUG("Failed to subtract base to odom transform");
-        return;
-    }
-    tf::Transform tf_odom_to_map(
-        tf::Quaternion(odom_to_map.getRotation()),
-        tf::Point(odom_to_map.getOrigin()));
-
-    tf_broadcaster.sendTransform(
-        tf::StampedTransform(tf_odom_to_map.inverse(), ros::Time::now(), "map", "odom"));
-}*/
 /**
  * Done4
  * Publishes the map->odom transformation
@@ -313,25 +292,6 @@ void SelfLocalizationNode::publishMapToOdomTf() {
         tf::StampedTransform(tf_odom_to_map.inverse(), ros::Time::now(), "map", "odom"));
 }
 
-
-/*void SelfLocalizationNode::publishParticles() {
-    if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
-    pose_array_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
-    pose_array_.header.seq++;
-    pose_array_.header.frame_id="map";
-    std::vector<geometry_msgs::Pose> poses; 
-    geometry_msgs::Pose pose;
-    for ( SamplePtr &s : particle_filter_->samples) {
-        pose = geometry_msgs::Pose();
-        pose.position.x = s->x();
-        pose.position.y = s->y();
-        pose.position.z = 0;
-        pose.orientation = tf::createQuaternionMsgFromYaw(s->theta());
-        poses.push_back(pose);
-    }
-    pose_array_.poses = poses;
-    pub_particles_.publish(pose_array_);
-}*/
 /**
  * Done4
  * Publishes the sample particles
