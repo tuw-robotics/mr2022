@@ -38,6 +38,7 @@ The planner repeatingly updates the transform for the robot pose which is provid
 The mr_goto node is a new python node and already connects to the scan messages and publishes velocity commands. At the moment the driving is overcomplicated and can possibly be simplified quite easily.
 
 #### 4.2 Simple, no Obstacle (50p)
+Launch the environment as described in section 0. Choose an arbitrary location with no obstructions and set it via RViz. The robot starts to turn towards the goal and starts driving once the trajectory is somewhat okay. Course corrections are done while driving. Once near the goal the robot stops and turns itself in the set direction. The gif is sped up since our robot drives really slowly.
 ![goto](./img/goto.gif)
 
 
