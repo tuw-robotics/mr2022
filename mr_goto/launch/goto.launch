@@ -19,12 +19,12 @@
     <!--<arg name="map_ref"  default="map"/>
     <arg name="map"  default="cave"/>
     <arg name="room" default="map_server/cave" />-->
-    <arg name="map_ref"  default="line"/>
+    <!--<arg name="map_ref"  default="line"/>-->
     <arg name="map"  default="line"/>
     <arg name="room" default="maps" />
-    <arg name="cfg" default="particle_filter.yaml" />  <!-- particle_filter.yaml, ekf.yaml -->
+    <!--<arg name="cfg" default="particle_filter.yaml" />-->  <!-- particle_filter.yaml, ekf.yaml -->
     
-    <node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/$(arg room)/$(arg map_ref).yaml"/>
+    <!--<node pkg="map_server" type="map_server" name="map_server" args="$(find mr_launch)/cfg/$(arg room)/$(arg map_ref).yaml"/>-->
     
     <node pkg="mr_self_localization" type="mr_self_localization_node" name="self_localization" output="screen">
         <!--<rosparam file="$(find mr_self_localization)/cfg/$(arg cfg)" command="load"/>-->

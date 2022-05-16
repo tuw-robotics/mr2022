@@ -76,7 +76,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
 #else
     /**
      * @node your code
-     **/
+     **/    
     sub_goal_ = n_.subscribe ( "move_base_simple/goal", 1, &LocalPlannerNode::callbackGoal, this );
     sub_odom_ = n_.subscribe ( "odom", 1, &LocalPlannerNode::callbackOdometry, this );
 #endif
