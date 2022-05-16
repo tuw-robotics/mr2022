@@ -19,8 +19,10 @@ int main ( int argc, char **argv ) {
     while ( ros::ok() ) {
         
         try {
-            tf_listener_-> lookupTransform("map", "base_link", ros::Time(0), tf);
-            planner.callbackTransform(tf);
+            if (tf_listener_->frameExists("odom")) {
+                tf_listener_-> lookupTransform("odom", "base_link", ros::Time(0), tf);
+                planner.callbackTransform(tf);
+            }
         } catch(tf::TransformException ex) {
             ROS_ERROR ( "%s",ex.what() );
         }

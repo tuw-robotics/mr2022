@@ -337,6 +337,10 @@ void SelfLocalizationNode::publishMapToOdomTf() {
  * Publishes the sample particles
  **/
 void SelfLocalizationNode::publishParticles() {
+    if (pose_filter_->getType() != PoseFilter::PARTICLE_FILTER) {
+        return;
+    }
+    
     if ( pose_filter_->time_last_update().is_not_a_date_time() ) return;
     pose_array_.header.frame_id = "map";
     pose_array_.header.stamp.fromBoost ( pose_filter_->time_last_update() );
