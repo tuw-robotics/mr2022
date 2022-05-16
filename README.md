@@ -13,7 +13,7 @@
 The following launches will start all necessary nodes and also opens RViz with a predefined setup for visualization.
 
 1. `roslaunch stage_ros world.launch world:=line.world`
-2. `roslaunch mr_goto goto.launch map:=line.yaml`
+2. `roslaunch mr_goto goto.launch`
 
 
 ### 1. Publish the used map (45p)

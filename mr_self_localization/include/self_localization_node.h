@@ -26,7 +26,9 @@ public:
     void publishPoseEstimated ();   /// publishes the estimated pose
     void publishParticles();        /// publishes the particles
     void publishMapToOdomTf();      /// publishes the map to odom tf
+    void publishMap();
 private:
+    size_t map_seq_;
     ros::NodeHandle n_;             /// node handler to the root node
     ros::NodeHandle n_param_;       /// node handler to the current node
     ros::Subscriber sub_cmd_;       /// Subscriber to the command measurements
@@ -36,6 +38,7 @@ private:
     ros::Subscriber sub_ground_truth_; /// Subscriber to the ground truth pose (simulation only)
     ros::Publisher pub_pose_estimated_; /// publisher for the estimated pose
     ros::Publisher pub_particles_; /// publisher for the particles
+    ros::Publisher pub_map_; /// publisher for the map
     std::shared_ptr<tf::TransformListener> tf_listener_;  /// listener to receive transformation messages -> to get the laser pose
     tf::TransformBroadcaster tf_broadcaster;
     geometry_msgs::PoseWithCovarianceStamped pose_; /// pose to publish with covariance
