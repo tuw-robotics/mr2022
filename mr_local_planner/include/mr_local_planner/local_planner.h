@@ -65,7 +65,6 @@ protected:
     mr_local_planner::LocalPlannerConfig config_;
     
     Pose2D mapBaselinkTf_;
-    bool reachedPose(Pose2D, Pose2D);
 };
 }
 

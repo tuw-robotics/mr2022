@@ -222,7 +222,7 @@ void LocalPlanner::bug1() {
     * @ToDo Bug1
     * use goal_, start_ and odom_
     **/
-    Pose2D q = odom_;
+    Pose2D s = odom_;
     Pose2D g = goal_;
     double v = 0.0;
     double w = 0.0;
@@ -232,34 +232,45 @@ void LocalPlanner::bug1() {
     bool isBackAgain = false;
     
     Pose2D gR = mapBaselinkTf_.tf().inv() * g.position();
-    //double thetaDiff = angle_difference(q.theta(), tf::getYaw(goal_local_.pose.orientation));
-    double thetaDiff = atan2(gR.y(), gR.x());
-    //ROS_INFO("diff: %f", thetaDiff);
+    /*double dx = g.x() - mapBaselinkTf_.x();
+    double dy = g.y() - mapBaselinkTf_.y();
+    double angleDiff = angle_difference(angle_normalize(atan2(dy, dx)), angle_normalize(mapBaselinkTf_.theta()));
+    double poseDiff = sqrt(dx * dx + dy * dy);*/
+    double angleDiff = atan2(gR.y(), gR.x());
+    double poseDiff = sqrt(gR.x()*gR.x() + gR.y()*gR.y());
+    double finalAngleDiff;
+    ROS_INFO("diff: %4.3f | %4.3f", poseDiff, angleDiff);
     switch(action_state_) {
         case INIT: 
             action_state_ = STRAIGHT;
             break;
         case TURN:
-            w = min(0.2, max(-0.2, thetaDiff));
-            if (abs(thetaDiff) <= 0.07) {
-                action_state_ = STRAIGHT;
-            } /*else if(thetaDiff < 0 && thetaDiff >= -0.3) {
-                w = 0.05;
-            } else if (thetaDiff > 0 && thetaDiff <= 0.3) {
-                w = -0.05;
-            } else if (thetaDiff < 0 && thetaDiff < -0.3) {
-                w = 0.2;
-            } else if (thetaDiff > 0 && thetaDiff > 0.3) {
-                w = -0.2;
-            }*/
+            finalAngleDiff = angle_difference(angle_normalize(s.theta()), angle_normalize(g.theta()));
+            if (finalAngleDiff > 0.05) {
+                w = 0.07;
+            } else if(finalAngleDiff < -0.05) {
+                w = -0.07;
+            } else {
+                action_state_ = WAIT;
+            }
             break;
         case STRAIGHT:
             v = 0.7;
-            if (reachedPose(q, g)) {
-                action_state_ = WAIT;
-            } else if (abs(thetaDiff) > 0.07) {
+            w = min(0.2, max(-0.2, angleDiff));
+            /*if (abs(angleDiff) <= 0.07) {
+                action_state_ = STRAIGHT;
+            } else if(angleDiff < 0 && angleDiff >= -0.3) {
+                w = 0.05;
+            } else if (angleDiff > 0 && angleDiff <= 0.3) {
+                w = -0.05;
+            } else if (angleDiff < 0 && angleDiff < -0.3) {
+                w = 0.2;
+            } else if (angleDiff > 0 && angleDiff > 0.3) {
+                w = -0.2;
+            }*/
+            if (poseDiff < 0.3) {
                 action_state_ = TURN;
-            }
+            } 
             break;
         default:
             v = 0.0;
@@ -267,10 +278,6 @@ void LocalPlanner::bug1() {
             break;
     }
     cmd_.set(v, w);
-}
-
-bool LocalPlanner::reachedPose(Pose2D pose1, Pose2D pose2) {
-    return pose1.position().distanceTo(pose2.position()) < 0.01;
 }
 
 void LocalPlanner::bug2() {
@@ -293,4 +300,5 @@ void LocalPlanner::callbackTransform (tf::StampedTransform& tf) {
     double roll = 0, pitch = 0, yaw = 0;
     tf::Matrix3x3 (tf.getRotation()).getRPY ( roll, pitch, yaw );
     mapBaselinkTf_.set(tf.getOrigin().x(), tf.getOrigin().y(), yaw);
+    ROS_INFO ( "tf received! %4.3f,%4.3f,%4.3f",  tf.getOrigin().x(), tf.getOrigin().y(), yaw);
 }
