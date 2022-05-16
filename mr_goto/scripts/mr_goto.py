@@ -22,6 +22,14 @@ def angle_normalize(angle):
         angle += 2.*math.pi
     return angle
 
+def norm_angle_difference(alpha0, angle1):
+    a0 = angle_normalize(alpha0)
+    a1 = angle_normalize(angle1)
+    return math.atan2(math.sin(a0-a1), math.cos(a0-a1))
+
+def norm_orientation(z, w):
+    return angle_normalize(2 * math.atan2(z, w))
+
 class GoTo:
     def __init__(self):
         rospy.loginfo("Hello from goto node")
@@ -29,30 +37,20 @@ class GoTo:
         #Topics & Subs, Pubs
         drive_topic = '/cmd_vel'
         goal_topic = '/move_base_simple/goal'
-        initial_pose_topic = '/initialpose'
         odom_topic = '/odom'
-        pose_estimated_topic = '/pose_estimated'
 
         self.goal_pose = None
         self.movement_pattern = 0
         
         self.goal_sub = rospy.Subscriber(goal_topic, PoseStamped, self.goal_callback)
         self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.odom_callback)
-        self.init_pose_sub = rospy.Subscriber(initial_pose_topic, PoseWithCovarianceStamped, self.init_pose_callback)
         self.drive_pub = rospy.Publisher(drive_topic, Twist, queue_size=10)
-        self.pose_estimated_sub = rospy.Subscriber(pose_estimated_topic, PoseWithCovarianceStamped, self.pose_est_callback)
 
         self.listener = tf.TransformListener()
 
 
     def odom_callback(self, data):
         self.move(data)
-        pass
-
-    def pose_est_callback(self, data):
-        print("Pose Estimated")
-        print(data.pose.pose.position)
-        print(data.pose.pose.orientation)
 
    
     def goal_callback(self, data):
@@ -61,92 +59,64 @@ class GoTo:
         self.goal_pose = data
         print("goal callback:", data)
         self.movement_pattern = 1
-    
-    
-    def init_pose_callback(self, data):
-        rospy.logdebug("init pose callback data: %f, %f", data.pose.pose.position.x, data.pose.pose.position.y)
 
         
     def move(self, data):
 
+        if not self.goal_pose:
+            return
+
         try:
         # if listener.frameExists('odom'):
-            (trans, rota) = self.listener.lookupTransform('/base_footprint', '/odom', rospy.Time(0))
+            (trans, rota) = self.listener.lookupTransform('/odom', '/base_footprint', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             print('tf exception thrown')
             return
 
-        print("Odometry:")
-        print(data.pose.pose.position)
-        print(data.pose.pose.orientation)
-        print("TF:")
-        print(trans)
-        print(rota)
+        velocity = 0.0
+        rotation = 0.0
 
-        if self.goal_pose:
-            dx = self.goal_pose.pose.position.x - trans[0]
-            dy = self.goal_pose.pose.position.y - trans[1]
-            target_angle = math.atan2(dx, dy)
-            current_angle = math.atan2(rota[2], rota[3])
-            angle_diff = angle_difference(angle_normalize(target_angle), angle_normalize(current_angle))
-            pose_diff = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+        goal_direction = angle_normalize(math.atan2(self.goal_pose.pose.position.y - trans[1], self.goal_pose.pose.position.x - trans[0]))
+        # print("Goal direction ", goal_direction)
+        current_orientation = norm_orientation(rota[2], rota[3])
+        # print("Current orientation ", current_orientation)
+        angle_diff = angle_difference(goal_direction, current_orientation)
+    
+        position_diff = math.sqrt(math.pow(self.goal_pose.pose.position.x - trans[0], 2) + math.pow(self.goal_pose.pose.position.y - trans[1], 2))
 
-            vel = 0.0
-            rot = 0.0
-            if pose_diff > 0.25:
-                vel = 0.2
-                if angle_diff > 0.3:
-                    rot = 0.4
-                elif angle_diff < -0.3:
-                    rot = -0.4
-                elif angle_diff > 0.1:
-                    rot = 0.2
-                elif angle_diff < -0.1:
-                    rot = -0.2
-                else:
-                    vel = 0.5
+        goal_angle = norm_orientation(self.goal_pose.pose.orientation.z, self.goal_pose.pose.orientation.w)
+
+        goal_angle_diff = angle_difference(goal_angle, current_orientation)
+
+        if self.movement_pattern == 1:
+            if angle_diff > 0.2:
+                rotation = 0.1
+            elif angle_diff < -0.2:
+                rotation = -0.1
             else:
-                target_angle_diff = angle_difference(
-                    angle_normalize(
-                        2 * math.atan2(
-                            self.goal_pose.pose.orientation.z, 
-                            self.goal_pose.pose.orientation.w)),
-                    angle_normalize(
-                        rota[3]
-                    ))
+                print("Rotation matched")
+                self.movement_pattern = 2
+        if self.movement_pattern == 2:
+            if angle_diff > 0.2 or angle_diff < -0.2:
+                self.movement_pattern = 1
+            if position_diff > 0.2:
+                velocity = 0.2
+            else:
+                print("Position matched")
+                self.movement_pattern = 3
+        if self.movement_pattern == 3:
+            if goal_angle_diff > 0.1:
+                rotation = 0.05
+            elif goal_angle_diff < -0.1:
+                rotation = -0.05
+            else:
+                print("Target position reached")
+                self.movement_pattern = 0
 
-                if target_angle_diff > 0.08:
-                    rot = 0.15
-                elif target_angle_diff < -0.08:
-                    rot = -0.15
-
-
-            cmd = Twist()
-            cmd.linear.x = vel
-            cmd.angular.z = rot
-            print(cmd)
-            self.drive_pub.publish(cmd)
-
-        #if goal_pose: 
-            #rospy.loginfo("I like to move it")
-            #rospy.loginfo("goal: %fx, %fy", goal_pose.pose.position.x, goal_pose.pose.position.y)
-            #rospy.loginfo("goal-orientation: %fx, %fy, %fz, %fw", goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z, goal_pose.pose.orientation.w)
-        #if data:
-            #rospy.loginfo("I have a position")
-            #rospy.loginfo("pose: %fx, %fy", data.pose.pose.position.x, data.pose.pose.position.y)
-            #rospy.loginfo("pose-orientation: %fx, %fy, %fz, %fw", data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w)
-        # if self.movement_pattern == 0:
-        #     rospy.loginfo("Waiting for instructions")
-        # elif self.movement_pattern == 1:
-
-        #     rospy.loginfo("Movement initialized - turning to goal")
-        # elif self.movement_pattern == 2:
-        #     rospy.loginfo("Moving in goal direction")
-        #     pass
-        # elif self.movement_pattern == 3:
-        #     rospy.loginfo("Goal reached - turning in goal direction")
-        #     movement_pattern = 0
-        
+        cmd = Twist()
+        cmd.linear.x = velocity
+        cmd.angular.z = rotation
+        self.drive_pub.publish(cmd)
         
  
 def main(args):

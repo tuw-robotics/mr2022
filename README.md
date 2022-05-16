@@ -37,7 +37,13 @@ The planner repeatingly updates the transform for the robot pose which is provid
 
 ### 4. Planner
 #### 4.1 New Node (50p)
-The mr_goto node is a new python node and already connects to the scan messages and publishes velocity commands. At the moment the driving is overcomplicated and can possibly be simplified quite easily.
+The mr_goto node is a new python node and already connects to the scan messages and publishes velocity commands. At the beginning the node was overcomplicated and utilized a wall follow algorithm implemented in another course. However, we decided against trying to avoid obstacles with our wall follow algorithm and instead focused on a simple go to implementation.
+Running `rosnode list` results in the following output.
+![rosnode_list](./img/rosnode_list.png)
+
+#### 4.2 Simple, no Obstacle (50p)
+Launch the environment as described in section 0. Choose an arbitrary location with no obstructions and set it via RViz. The robot starts to turn towards the goal and starts driving once the trajectory is somewhat okay. Course corrections are done while driving. Once near the goal the robot stops and turns itself in the set direction. The gif is sped up since our robot drives really slowly.
+![goto](./img/goto.gif)
 
 
 ### 5. Using git to merge project
