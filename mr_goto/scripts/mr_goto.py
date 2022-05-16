@@ -59,10 +59,6 @@ class GoTo:
         self.goal_pose = data
         print("goal callback:", data)
         self.movement_pattern = 1
-    
-    
-    def init_pose_callback(self, data):
-        rospy.logdebug("init pose callback data: %f, %f", data.pose.pose.position.x, data.pose.pose.position.y)
 
         
     def move(self, data):
