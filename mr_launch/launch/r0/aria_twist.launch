@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="robot_name"            default="r0"/>
+  <arg name="port"                  default="/dev/ttyS0"/>  <!-- /dev/ttyS0,  /dev/ttyUSB1 -->
+  <arg name="trans_accel"           default="100" />
+  <arg name="trans_decel"           default="100" />
+  <arg name="lat_accel"             default="100" />
+  <arg name="lat_decel"             default="100" />
+  <arg name="rot_accel"             default="100" />
+  <arg name="rot_decel"             default="100" />
+
+  <group ns = "$(arg robot_name)">
+        
+    <!-- rosaria -->
+    <node pkg="rosaria" type="RosAria" name="RosAria">
+      <param name="port" value="$(arg port)" />
+      <remap from="RosAria/battery_state_of_charge/" to="battery_state_of_charge/" />
+      <remap from="RosAria/battery_recharge_state" to="battery_recharge_state" />
+      <remap from="RosAria/battery_voltage" to="battery_voltage" />
+      <remap from="RosAria/bumper_state" to="bumper_state" />
+      <remap from="RosAria/cmd_vel" to="cmd_vel" />
+      <remap from="RosAria/motors_state" to="motors_state" />
+      <remap from="RosAria/parameter_descriptions" to="parameter_descriptions" />
+      <remap from="RosAria/parameter_updates" to="parameter_updates" />
+      <remap from="RosAria/pose" to="odom" />
+      <remap from="RosAria/sonar" to="sonar" />
+      <remap from="RosAria/sonar_pointcloud2" to="sonar_pointcloud2" />
+      <remap from="RosAria/joint_measures" to="joint_measures" />
+      <remap from="RosAria/joint_cmds" to="joint_cmds" />
+      <param name="base_link_frame" value="r0/base_link"/>
+      <param name="odom_frame" value="r0/odom"/>
+      <param name="bumpers_frame" value="$(arg robot_name)/bumpers"/>
+      <param name="sonar_frame" value="$(arg robot_name)/sonar"/>
+      
+      <!-- for default values -->
+      <param name="trans_accel" value="$(arg trans_accel)" />
+      <param name="trans_decel" value="$(arg trans_decel)" />
+      <param name="lat_accel"   value="$(arg lat_accel)" />
+      <param name="lat_decel"   value="$(arg lat_decel)" />
+      <param name="rot_accel"   value="$(arg rot_accel)" />
+      <param name="rot_decel"   value="$(arg rot_decel)" />
+      
+    </node>
+  </group>
+  
+</launch>

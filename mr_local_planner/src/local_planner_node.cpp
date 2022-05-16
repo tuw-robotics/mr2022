@@ -2,6 +2,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
 
 using namespace moro;
 int main ( int argc, char **argv ) {
@@ -11,8 +12,20 @@ int main ( int argc, char **argv ) {
     LocalPlannerNode planner ( n );
     planner.init();
     ros::Rate rate ( 10 );  /// ros loop frequency synchronized with the wall time (simulated time)
-
+    
+    /// subscribes to transformations
+    tf::StampedTransform tf;
+    std::shared_ptr<tf::TransformListener> tf_listener_ = std::make_shared<tf::TransformListener>();
     while ( ros::ok() ) {
+        
+        try {
+            if (tf_listener_->frameExists("odom")) {
+                tf_listener_-> lookupTransform("odom", "base_link", ros::Time(0), tf);
+                planner.callbackTransform(tf);
+            }
+        } catch(tf::TransformException ex) {
+            ROS_ERROR ( "%s",ex.what() );
+        }
 
         /// calls your loop
         planner.ai();
@@ -56,16 +69,16 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
 
 
     /**
-     * @ToDo GoTo
+     * @Done6 GoTo
      * subscribes the fnc callbackGoal to goal and fnc callbackOdometry to odom
      **/
 #if PLANNER_EXERCISE >= 10
 #else
     /**
      * @node your code
-     **/
-    // sub_goal_ =
-    // sub_odom_ =
+     **/    
+    sub_goal_ = n_.subscribe ( "move_base_simple/goal", 1, &LocalPlannerNode::callbackGoal, this );
+    sub_odom_ = n_.subscribe ( "odom", 1, &LocalPlannerNode::callbackOdometry, this );
 #endif
 
     /// defines a publisher for velocity commands
@@ -111,6 +124,7 @@ void LocalPlannerNode::callbackLaser ( const sensor_msgs::LaserScan &_laser ) {
     }
 #endif
 }
+
 /**
  * copies incoming odometry messages to the base class
  * @param odom
@@ -123,6 +137,7 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
     double a = yaw;
     odom_.set ( odom.pose.pose.position.x, odom.pose.pose.position.y, a );
     odom_.recompute_cached_cos_sin();
+    //ROS_INFO ( "odom received! %4.3f,%4.3f",  odom_.x(), odom_.y() );
 }
 
 
@@ -130,15 +145,35 @@ void LocalPlannerNode::callbackOdometry ( const nav_msgs::Odometry &odom ) {
  * copies incoming pose messages to the base class
  * @param odom
  **/
-void LocalPlannerNode::callbackGoal ( const geometry_msgs::Pose2D& goal ) {
-    goal_.set ( goal.x, goal.y, goal.theta );
+void LocalPlannerNode::callbackGoal ( const geometry_msgs::PoseStamped& goal ) {
+    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal.pose.position.x, goal.pose.position.y );
+    tf::Quaternion q;
+    tf::quaternionMsgToTF ( goal.pose.orientation, q );
+    double roll = 0, pitch = 0, yaw = 0;
+    tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
+    goal_.set(goal.pose.position.x, goal.pose.position.y, yaw);    
+    
+    //goal_.set ( goal.x, goal.y, goal.theta );
     goal_.recompute_cached_cos_sin();
 
     start_ = odom_;
     action_state_ = ActionState::INIT;
 
-    Point2D goal_local;
-    ROS_INFO ( "goal received! %4.3f,%4.3f",  goal_.x(), goal_.y() );
+    //Point2D goal_local;
+    
+    //tf::StampedTransform transform;
+    //tf_listener_-> lookupTransform("map", "base_footprint", ros::Time(0), transform);
+    //tf::Matrix3x3(transform.getRotation()).getRPY(roll, pitch, yaw);
+    
+    /*ros::Time current_transform = ros::Time::now(); 
+    tf_listener_->getLatestCommonTime(goal.header.frame_id, "map", current_transform, NULL);
+    goal.header.stamp = current_transform;
+    goal.header.
+    tf_listener_->transformPose("map", goal, goal_local_);
+    tf::quaternionMsgToTF ( goal_local_.pose.orientation, q );
+    tf::Matrix3x3 ( q ).getRPY ( roll, pitch, yaw );
+    a = yaw;
+    ROS_INFO ( "goal_local received! %4.3f,%4.3f,%4.3f",  goal_local_.pose.position.x, goal_local_.pose.position.y, a);*/
 }
 
 

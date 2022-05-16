@@ -1,0 +1,15 @@
+scan_filter_chain:
+- name: shadows
+  type: ScanShadowsFilter
+  params:
+    min_angle: 10
+    max_angle: 170
+    neighbors: 3
+    window: 1
+- name: person_filter
+  type: LaserScanObjectFilter
+  params:
+    object_radius: 0.7
+#    detection_topic_name: /p3dx/realsense_people_detection/detected_persons_tuw
+    detection_topic_name: /r0/tracked_people
+#    detection_topic_name: /p3dx/leg_detector/people_measurements_tuw

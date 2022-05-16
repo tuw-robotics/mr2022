@@ -6,6 +6,7 @@
 #include <opencv2/opencv.hpp>
 #include <mr_geometry/geometry.h>
 #include <mr_local_planner/LocalPlannerConfig.h>
+#include <tf/transform_datatypes.h>
 
 namespace moro {
 /**
@@ -39,6 +40,7 @@ public:
     void init();                         /// initialization
     void ai();                           /// artificial intelligence calls a behavior
     void plot();                         /// plots sensor input
+    void callbackTransform (tf::StampedTransform&);
     
 protected:
 
@@ -61,6 +63,8 @@ protected:
     void tangensbug();      /// Tangensbug behavior
     void plotLocal();       /// plots sensor input in robot coordinates
     mr_local_planner::LocalPlannerConfig config_;
+    
+    Pose2D mapBaselinkTf_;
 };
 }
 

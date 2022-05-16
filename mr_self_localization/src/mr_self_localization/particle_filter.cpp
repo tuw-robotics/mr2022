@@ -89,6 +89,7 @@ void ParticleFilter::initGrid () {
 }
 
 void ParticleFilter::update ( const Command &u ) {
+
     int ms = config_.forward_prediction_time * 1000;
     boost::posix_time::time_duration duration = duration_last_update_ + boost::posix_time::millisec ( ms );
     double dx, dy, dtheta, dt = duration.total_microseconds() /1000000.;
@@ -377,7 +378,7 @@ void ParticleFilter::resample () {
     /**
      * @node your code
      **/
-    size_t nr_of_resamples = samples.size() * config_.resample_rate;
+    /*size_t nr_of_resamples = samples.size() * config_.resample_rate;
     if (nr_of_resamples >= samples.size()) nr_of_resamples = samples.size() - 1;
     std::vector<SamplePtr> new_samples;
     switch ( config_.resample_strategy ) {
@@ -411,7 +412,56 @@ void ParticleFilter::resample () {
             }
             samples = new_samples; // TODO: improve sample setting
             break;
-    }
+    }*/
+    int resample_cnt = samples.size() * (config_.resample_rate > 0.5 
+        ? config_.resample_rate - 0.5 
+        : config_.resample_rate);
+    //std::cout << config_.resample_strategy << std::endl;
+    if (config_.resample_strategy == 0) {
+        // sorting not needed - samples is already sorted
+        /*std::sort(samples.begin(),samples.end(), 
+            [](SamplePtr &s1, SamplePtr &s2) -> bool {
+                return s1->weight() > s2->weight();
+            }
+        );*/
+        //samples.erase(samples.end() - resample_cnt, samples.end());
+        samples.resize(samples.size() - resample_cnt);
+        for (size_t i = 0; i < resample_cnt; i++) {
+            SamplePtr &parent = samples[i];
+            samples.push_back(std::make_shared<Sample>(*parent));
+            SamplePtr &s  = samples.back();
+            normal(s, *s, 
+                config_.sigma_static_position*dt,  
+                config_.sigma_static_orientation*dt);
+        }
+    } else { // 1 and default
+        // low variance sampling
+        double invM = 1.0 / resample_cnt;
+        double r = d(generator_) * invM;
+        double c = samples[0]->weight();
+        size_t i = 0;
+        double u;
+        std::vector<SamplePtr> newS(samples.begin(), samples.end()-resample_cnt);
+        for (size_t m = 0; m < resample_cnt; m++) {
+            u = r + (m - 1.0) * invM;
+            while (u > c) {
+                i++;
+                if (i >= samples.size()) {
+                    break;
+                }
+                c = c + samples[i]->weight();
+            }
+            if (i >= samples.size()) {
+                break;
+            }
+            newS.push_back(std::make_shared<Sample>(*samples[i]));
+            SamplePtr &s  = newS.back();
+            normal(s, *s, 
+                config_.sigma_static_position*dt,  
+                config_.sigma_static_orientation*dt);
+        }
+        samples = newS;
+    };
 #endif
         /// update number of samples
         if ( config_.nr_of_samples < samples.size() ) samples.resize ( config_.nr_of_samples );

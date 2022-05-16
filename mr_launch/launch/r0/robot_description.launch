@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="robot_name"           default="r0" />
+  <arg name="model_dir"            default="$(find tuw_gazebo_models)/models"/>
+  <arg name="platform_dir"         default="/platforms/pioneer3dx" />
+  <arg name="motor_plugin"         default="diff_iws" /> <!-- diff_twist or diff_iws. If something else is set, no plugin will be loaded-->
+  <arg name="use_gui"              default="true"/>
+  <arg name="static_wheel_joints"  default="false"/>
+  <arg name="cfg"                  default="p3dx"/>
+    
+  <group ns="$(arg robot_name)">
+
+   <!-- Load the URDF into the ROS Parameter Server -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(arg model_dir)/$(arg platform_dir)/main.xacro' model_dir:=$(arg model_dir) platform_dir:=$(arg platform_dir) namespace:=$(arg robot_name) motor_plugin:=$(arg motor_plugin)"/>
+    
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="30.0"/>
+      <param name="tf_prefix" type="string" value="$(arg robot_name)"/>
+    </node>
+    
+    <!-- Joint state publisher for the real robot -->
+    <group if="$(arg static_wheel_joints)">
+      <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" output="screen">
+        <param name="use_gui"   value="$(arg use_gui)" />
+      </node>
+    </group>
+  </group>
+  
+</launch>
