@@ -255,7 +255,9 @@ void LocalPlanner::bug1() {
             }
             break;
         case STRAIGHT:
-            v = 0.7;
+            if (abs(angleDiff) < 0.07 ) {
+                v = 0.7;
+            }
             w = min(0.2, max(-0.2, angleDiff));
             /*if (abs(angleDiff) <= 0.07) {
                 action_state_ = STRAIGHT;

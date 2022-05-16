@@ -17,8 +17,10 @@ The following launches will start all necessary nodes and also opens RViz with a
 
 
 ### 1. Publish the used map (45p)
-The used maps are being published by the map_server node. To be able to utilize these maps I created the necessary yaml files and moved everything into mr_launch/cfg/maps.
-The map_server node is included in the mr_goto/launch/goto.launch file and the maps are configurable with the map argument. The default map is line.
+The used maps are being published by the self-localization node. The node is included in the mr_goto/launch/goto.launch file and the maps are configurable with the map argument. The default map is line.
+The published map topic can be used to visualize the map with RViz.
+
+![map](./img/map.png)
 
 
 ### 2. Initialize self-localization and trigger driving using RViz (50p)
