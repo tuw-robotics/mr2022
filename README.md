@@ -32,6 +32,7 @@ The self-localization node subscribes to the `/initialpose` topic and listenes f
 
 ### 3. Connect self-localization and planner (45p)
 The planner repeatingly updates the transform for the robot pose which is provided by the self-localization node. The driving can be triggered from RViz by setting the goal-position. Also the TF tree can be visualized to see the complete transformation from map to base-link.
+![tf_tree](./img/tf_tree.png)
 
 
 ### 4. Planner

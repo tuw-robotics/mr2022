@@ -1,258 +1,161 @@
 #!/usr/bin/env python3
 from __future__ import print_function
+from calendar import c
 from re import T
 import sys
 import math
-from turtle import left, speed
 
 #ROS Imports
 import rospy
-from std_msgs.msg import Float64
-from sensor_msgs.msg import LaserScan
-from ackermann_msgs.msg import AckermannDriveStamped
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseWithCovarianceStamped, PoseStamped
+from nav_msgs.msg import Odometry
+import tf
 
-from dynamic_reconfigure.server import Server
 
-# WARNING: THIS IS ANNOYING
-# Unfortunately the dynamic reconfiguration imports do not work with the given
-# file names as the package and the file have the same name. This causes a 
-# naming conflict. Thus, there are two configurations
-# 
-# A. Set the flag to true and name this file follow.py (also change CMake and
-#    launch files). This allows dynamic reconfiguration
-# B. Name this file wall_follow.py and disable the flag. Then, the code can be
-#    uploaded to the server provieded on TUWEL
-# 
-# Unfortunately you might have to rerun catkin_make and delete the files in 
-# ~/catkin_ws/devel/lib/python3/dist-packages/wall_follow and ~/catkin_ws/
-# ~/catkin_ws/src/wall_follow/scripts/wall_follow when changing between the
-# two configurations.
-USE_DYNAMIC_RECONFIG = False
+def angle_difference(alpha0, angle1):
+    return math.atan2(math.sin(alpha0-angle1), math.cos(alpha0-angle1))
 
-if USE_DYNAMIC_RECONFIG:
-    from mr_goto.cfg import GainsConfig
+def angle_normalize(angle):
+    while angle > math.pi:
+        angle -= 2.*math.pi
+    while angle < -math.pi:
+        angle += 2.*math.pi
+    return angle
 
-# PID CONTROL PARAMS
-kp = rospy.get_param('/mr_goto/gain_p', 0.32)
-kd = rospy.get_param('/mr_goto/gain_d', 0.0)
-ki = rospy.get_param('/mr_goto/gain_i', 0.0)
-
-# WALL FOLLOW PARAMS
-THETA = rospy.get_param('/mr_goto/theta_lidar', 42) # degrees
-DYNAMIC_DISTANCE = rospy.get_param('/mr_goto/dynamic_distance', True)  # drives in the middle of the track
-# use 1.2 for rect map
-DESIRED_DISTANCE_LEFT = rospy.get_param('/mr_goto/desired_distance', 1.5) # meters (only active if no dynamic distance)
-MAX_WALL_DISTANCE = 1.8  # m (only active with dynamic distance, helps with wide curves)
-BASIC_VELOCITY = False  # simple velocity scheme from the assignment sheet, otherwise more aggressive behaviour
-MAX_SPEED = rospy.get_param('/mr_goto/max_speed', 6.3)  # m/s  (only without basic velocity)
-MIN_SPEED = rospy.get_param('/mr_goto/min_speed', 1.7)  # m/s  (only without basic velocity)
-LOOKAHEAD_DIST_FAST = 3.0  # m  (if the car drives more than 5 m/s)
-LOOKAHEAD_DIST_MID = 2.25  # m  (if the car drives more than 3 m/s)
-LOOKAHEAD_DIST_SLOW = 1.5  # m  (if the car drives slower than 3 m/s)
-
-# Car params
-MAX_STEERING_ANGLE = math.radians(24)
-
-# Globar variables
-prev_error = 0.0 
-error = 0.0
-integral = 0.0
-prev_time = 0.0
-velocity = 0.0
-
-def reconfig_callback(config, level):
-    global kp
-    global ki
-    global kd
-    global DESIRED_DISTANCE_LEFT
-    global THETA
-    global DYNAMIC_DISTANCE
-    kp = config.kp
-    ki = config.ki
-    kd = config.kd
-    DESIRED_DISTANCE_LEFT = config.dist
-    THETA = config.THETA
-    DYNAMIC_DISTANCE = config.dynamic_dist
-    rospy.loginfo("Gains set to kp={kp}, ki={ki}, kd={kd}".format(**config))
-    rospy.loginfo("Wall distance set to {dist} m".format(**config))
-    rospy.loginfo("Theta set to {THETA} degrees".format(**config))
-    rospy.loginfo("Lookahead distance set to {d_lookahead} m".format(**config))
-    return config
-
-class WallFollow:
-    """ Implement Wall Following on the car
-    """
+class GoTo:
     def __init__(self):
-        rospy.loginfo("Hello from wall_follow node")
+        rospy.loginfo("Hello from goto node")
 
         #Topics & Subs, Pubs
-        lidarscan_topic = '/base_scan'
         drive_topic = '/cmd_vel'
-        #alpha_topic = '/alpha'
-        #dist_topic = '/dist_left'
-        #dist_lookahead_topic = '/dist_lookahead'
-        #error_topic = '/err'
-        #integral_topic = '/integral'
+        goal_topic = '/move_base_simple/goal'
+        initial_pose_topic = '/initialpose'
+        odom_topic = '/odom'
+        pose_estimated_topic = '/pose_estimated'
 
-        self.lidar_sub = rospy.Subscriber(lidarscan_topic, LaserScan, self.lidar_callback)
+        self.goal_pose = None
+        self.movement_pattern = 0
+        
+        self.goal_sub = rospy.Subscriber(goal_topic, PoseStamped, self.goal_callback)
+        self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.odom_callback)
+        self.init_pose_sub = rospy.Subscriber(initial_pose_topic, PoseWithCovarianceStamped, self.init_pose_callback)
         self.drive_pub = rospy.Publisher(drive_topic, Twist, queue_size=10)
-        #self.alpha_pub = rospy.Publisher(alpha_topic, Float64, queue_size=10)
-        #self.error_pub = rospy.Publisher(error_topic, Float64, queue_size=10)
-        #self.dist_left_pub = rospy.Publisher(dist_topic, Float64, queue_size=10)
-        #self.dist_lookahead_pub = rospy.Publisher(dist_lookahead_topic, Float64, queue_size=10)
-        #self.integral_pub = rospy.Publisher(integral_topic, Float64, queue_size=10)
+        self.pose_estimated_sub = rospy.Subscriber(pose_estimated_topic, PoseWithCovarianceStamped, self.pose_est_callback)
+
+        self.listener = tf.TransformListener()
+
+
+    def odom_callback(self, data):
+        self.move(data)
+        pass
+
+    def pose_est_callback(self, data):
+        print("Pose Estimated")
+        print(data.pose.pose.position)
+        print(data.pose.pose.orientation)
+
+   
+    def goal_callback(self, data):
+        rospy.logdebug("goal callback data: %f", data.pose.position.x)
         
-    def getRange(self, data, angle):
-        # data: single message from topic /scan
-        # angle: between -45 to 225 degrees, where 0 degrees is directly to the right
-        # Outputs length in meters to object with angle in lidar scan field of view
-        # make sure to take care of nans etc.
+        self.goal_pose = data
+        print("goal callback:", data)
+        self.movement_pattern = 1
+    
+    
+    def init_pose_callback(self, data):
+        rospy.logdebug("init pose callback data: %f, %f", data.pose.pose.position.x, data.pose.pose.position.y)
 
-        input_angle = angle - 90
-        angle_rad = math.radians(input_angle)
-        number_of_beams = len(data.ranges)
-        array_increment = angle_rad / data.angle_increment
         
-        array_index = (number_of_beams / 2 + array_increment if number_of_beams / 2 + array_increment <= number_of_beams else number_of_beams)
-        
-        result = data.ranges[int(array_index)]
-        
-        if (result and result > 0.0 and result < 10.0):
-            return result
-        else:
-            # rospy.loginfo("Invalid data: " + str(result))
-            return 10.0  # TODO better error handling
+    def move(self, data):
 
-    def pid_control(self, error):
-        global integral
-        global prev_error
-        global kp
-        global ki
-        global kd
-        global prev_time
-        global velocity
+        try:
+        # if listener.frameExists('odom'):
+            (trans, rota) = self.listener.lookupTransform('/base_footprint', '/odom', rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            print('tf exception thrown')
+            return
 
-        time = rospy.get_time()
+        print("Odometry:")
+        print(data.pose.pose.position)
+        print(data.pose.pose.orientation)
+        print("TF:")
+        print(trans)
+        print(rota)
 
-        if prev_time > 0.0:
-            delta_t = time - prev_time
-            delta_err = error - prev_error
-            integral += delta_t * error
-        else:  # ignore first time update
-            delta_t = 1  # avoid division by 0
-            delta_err = 0
+        if self.goal_pose:
+            dx = self.goal_pose.pose.position.x - trans[0]
+            dy = self.goal_pose.pose.position.y - trans[1]
+            target_angle = math.atan2(dx, dy)
+            current_angle = math.atan2(rota[2], rota[3])
+            angle_diff = angle_difference(angle_normalize(target_angle), angle_normalize(current_angle))
+            pose_diff = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
 
-        if delta_t != 0:
-            angle = kp * error + kd * delta_err/delta_t + ki * integral
-        else:
-            angle = 0
-
-        # Angle clipping. Probably handled by VESC anyway, but improves plot readablity
-        if(angle > MAX_STEERING_ANGLE):
-            angle = MAX_STEERING_ANGLE
-        elif (angle < -MAX_STEERING_ANGLE):
-            angle = -MAX_STEERING_ANGLE
-
-        if BASIC_VELOCITY:
-            
-            if(abs(math.degrees(angle)) > 20):
-                velocity = 0.5
-            elif (abs(math.degrees(angle)) > 10):
-                velocity = 1
+            vel = 0.0
+            rot = 0.0
+            if pose_diff > 0.25:
+                vel = 0.2
+                if angle_diff > 0.3:
+                    rot = 0.4
+                elif angle_diff < -0.3:
+                    rot = -0.4
+                elif angle_diff > 0.1:
+                    rot = 0.2
+                elif angle_diff < -0.1:
+                    rot = -0.2
+                else:
+                    vel = 0.5
             else:
-                velocity = 1.5
-        else:
-            velocity = MAX_SPEED - (MAX_SPEED-MIN_SPEED)/math.degrees(MAX_STEERING_ANGLE) * abs(math.degrees(kp) * error)
-            if velocity < MIN_SPEED:
-                velocity = MIN_SPEED
+                target_angle_diff = angle_difference(
+                    angle_normalize(
+                        2 * math.atan2(
+                            self.goal_pose.pose.orientation.z, 
+                            self.goal_pose.pose.orientation.w)),
+                    angle_normalize(
+                        rota[3]
+                    ))
 
-        prev_error = error
-        prev_time = time
+                if target_angle_diff > 0.08:
+                    rot = 0.15
+                elif target_angle_diff < -0.08:
+                    rot = -0.15
 
-        #drive_msg = AckermannDriveStamped()
-        #drive_msg.header.stamp = rospy.Time.now()
-        #drive_msg.header.frame_id = "laser"
-        #drive_msg.drive.steering_angle = angle
-        #drive_msg.drive.speed = velocity
-        drive_msg = Twist()
-        drive_msg.linear.x = velocity
-        drive_msg.angular.z = angle
-        self.drive_pub.publish(drive_msg)
 
-        # debugging messages
-        #error_msg = Float64()
-        #error_msg.data = error
-        #self.error_pub.publish(error_msg)
+            cmd = Twist()
+            cmd.linear.x = vel
+            cmd.angular.z = rot
+            print(cmd)
+            self.drive_pub.publish(cmd)
 
-        #integral_msg = Float64()
-        #integral_msg.data = integral
-        #self.integral_pub.publish(integral_msg)
+        #if goal_pose: 
+            #rospy.loginfo("I like to move it")
+            #rospy.loginfo("goal: %fx, %fy", goal_pose.pose.position.x, goal_pose.pose.position.y)
+            #rospy.loginfo("goal-orientation: %fx, %fy, %fz, %fw", goal_pose.pose.orientation.x, goal_pose.pose.orientation.y, goal_pose.pose.orientation.z, goal_pose.pose.orientation.w)
+        #if data:
+            #rospy.loginfo("I have a position")
+            #rospy.loginfo("pose: %fx, %fy", data.pose.pose.position.x, data.pose.pose.position.y)
+            #rospy.loginfo("pose-orientation: %fx, %fy, %fz, %fw", data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w)
+        # if self.movement_pattern == 0:
+        #     rospy.loginfo("Waiting for instructions")
+        # elif self.movement_pattern == 1:
 
-    def followLeft(self, data, leftDist):
-        global velocity
-        global prev_error
-
-        #Follow left wall as per the algorithm 
-        dist_left = self.getRange(data, 180)
-        dist_THETA = self.getRange(data, 180-THETA)
-
-        # TODO error handling (invalid distances)
+        #     rospy.loginfo("Movement initialized - turning to goal")
+        # elif self.movement_pattern == 2:
+        #     rospy.loginfo("Moving in goal direction")
+        #     pass
+        # elif self.movement_pattern == 3:
+        #     rospy.loginfo("Goal reached - turning in goal direction")
+        #     movement_pattern = 0
         
-        max_dist = self.getRange(data, 0) + self.getRange(data, 180)
         
-        alpha = math.atan2((dist_THETA*math.sin(math.radians(THETA))), (dist_THETA*math.cos(math.radians(THETA))-dist_left)) - math.pi/2
-
-        dist_wall = dist_left*math.cos(alpha)
-
-        # dynamic lookahead distance. No direct proportionality to avoid noise feedback
-        if velocity < 3:
-            ld = LOOKAHEAD_DIST_MID
-        if velocity > 5:
-            ld = LOOKAHEAD_DIST_FAST
-        else:
-            ld = LOOKAHEAD_DIST_MID
-
-        dist_wall_lookahead = dist_wall + ld * math.sin(-alpha)
-
-        if DYNAMIC_DISTANCE:
-            if max_dist < 2 * MAX_WALL_DISTANCE:
-                leftDist = max_dist/2
-            else:
-                leftDist = MAX_WALL_DISTANCE
-
-        error = dist_wall_lookahead - leftDist
-       
-        ## debugging messages
-        #alpha_msg = Float64()
-        #alpha_msg.data = alpha
-        #self.alpha_pub.publish(alpha_msg)
-
-        #dist_msg = Float64()
-        #dist_msg.data = dist_wall
-        #self.dist_left_pub.publish(dist_msg)
-
-        #dist_lookahead_msg = Float64()
-        #dist_lookahead_msg.data = dist_wall_lookahead
-        #self.dist_lookahead_pub.publish(dist_lookahead_msg)
-
-        return error 
-
-    def lidar_callback(self, data):
-        """ 
-        """
-        error = self.followLeft(data, DESIRED_DISTANCE_LEFT)    
-        self.pid_control(error)
-        
-
+ 
 def main(args):
     rospy.init_node("mr_goto_node", anonymous=True)
-    wf = WallFollow()
+    gt = GoTo()
 
-    if USE_DYNAMIC_RECONFIG:
-        srv = Server(GainsConfig, reconfig_callback)
     rospy.sleep(0.1)
     rospy.spin()
+
 
 if __name__=='__main__':
 	main(sys.argv)
