@@ -83,9 +83,12 @@ void Goto::plotLocal() {
             double j = r * 0.1;
             double i = -90.0 + c * 2.0;
             
-            if(Vs_.at<uint8_t>(r,c) == 1){
+            if(Vs_.at<uint8_t>(r,c) == 0){
                 Point2D d(i, j);
                 figure_search_space_.circle ( d, 5, Figure::niceRed, 2 );
+            }else{
+                Point2D d(i, j);
+                figure_search_space_.circle ( d, 5, CV_RGB(Vs_.at<uint8_t>(r,c), Vs_.at<uint8_t>(r,c), Vs_.at<uint8_t>(r,c)), 2 );
             }
         }
     }
@@ -215,20 +218,67 @@ void Goto::fill_search_space(){
             double j = r * 0.1;
             double i = -90.0 + c * 2.0;
             
+            if(j == 0.0){
+                Vs_.at<uint8_t>(r,c) = 1;
+                continue;
+            }
+            
             Point2D p = dist(j, i * (M_PI / 180.0), dt);
             
             Point2D p_laser = p - measurement_laser_.pose2d().position();
-            
+            /*
             // get index of closest lazer beam to that direction
             size_t index = (p_laser.angle() - laser_ang_min) / laser_and_range * (measurement_laser_.size() - 1);
             
-            //TODO: update this condition to proper one from slide 7
+            
+            
             double laser_dist = std::max(0.0, measurement_laser_[index].length - config_.safe_zone);
             if(laser_dist < p_laser.radius()){
                 //not allowed
-                Vs_.at<uint8_t>(r,c) = 1;
+                Vs_.at<uint8_t>(r,c) = 0;
             }else{
                 //allowed
+                Vs_.at<uint8_t>(r,c) = 1 + NF(j, i * (M_PI / 180.0), target) / 1.0;
+            }*/
+            
+            Pose2D target;
+
+            if(config_.use_path) {
+                target = path_next_step_;
+            } else {
+                target = goal_;
+            }
+            
+            bool clear = true;
+            
+            for ( int m = 0; m < measurement_laser_.size(); m++){
+                double alpha = p_laser.angle() + measurement_laser_[m].angle;
+                
+                //only calculate if in laser range
+                if(alpha > (M_PI / 2.0) || alpha < (-M_PI / 2.0)) continue;
+                
+                double EPSILON = 0.2;
+                
+                double min = 1000.0;
+                
+                //if not straight ahead
+                if((-EPSILON) > alpha || EPSILON < alpha ){
+                    min = config_.safe_radius / abs(sin(alpha));
+                }
+                
+                min = std::min(min, j * 2);
+                
+                double laser_dist = std::max(0.0, measurement_laser_[m].length - config_.safe_zone);
+                if(min > laser_dist){
+                    clear = false;
+                }
+            }
+            
+            if(clear){
+                //allowed
+                Vs_.at<uint8_t>(r,c) = 1 + NF(j, i * (M_PI / 180.0), target) / 1.0;
+            }else{
+                //not allowed
                 Vs_.at<uint8_t>(r,c) = 0;
             }
         }
@@ -284,7 +334,7 @@ Command Goto::select_from_dw(Pose2D target)
             double j = r * 0.1;
             double i = -M_PI/2.0 + c * 0.0349066;
             
-            if(Vs_.at<uint8_t>(r,c) == 0){
+            if(Vs_.at<uint8_t>(r,c) != 0){
                 double temp = NF(j, i, target);
                 
                 if(temp > max){
