@@ -9,8 +9,8 @@ class GlobalPlanner(object):
     def __init__(self):
         rospy.loginfo("GlobalPlanner init")
         
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback, queue_size = 1)
-        rospy.Subscriber('/initialpose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
+        rospy.Subscriber('/goal', PoseStamped, self.goal_callback, queue_size = 1)
+        rospy.Subscriber('/pose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
         self.path_publisher = rospy.Publisher('/waypoints', Path, queue_size=1)
         
         self.initpose = PoseWithCovarianceStamped()

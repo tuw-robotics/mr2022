@@ -36,16 +36,13 @@ class GlobalPlanner(object):
     def __init__(self):
         rospy.loginfo("GlobalPlanner: init")
         
-        rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.goal_callback, queue_size = 1)
-        rospy.Subscriber('/pose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
-        rospy.Subscriber('/map', OccupancyGrid, self.map_callback, queue_size = 1)
         self.tfBuffer = tf2_ros.Buffer()
         self.tfListener = tf2_ros.TransformListener(self.tfBuffer)
         self.path_publisher = rospy.Publisher('/waypoints', Path, queue_size=1)
         
         self.initpose = PoseWithCovarianceStamped()
         self.initpose.header.stamp = rospy.get_rostime()
-        self.initpose.header.frame_id = "unknown"
+        self.initpose.header.frame_id = "map"
         self.initpose.pose.pose.position.x = 0
         self.initpose.pose.pose.position.y = 0
 
@@ -55,10 +52,10 @@ class GlobalPlanner(object):
 
         self.occupied_thresh = 0.5 # this is normalized (0 to 1)
 
-        self.erosion_value = 18 #12
+        self.erosion_value = 5 #12
         self.d_value = 25
         self.use_blurred_factor = True
-        self.sample_every = 30 #20
+        self.sample_every = 10 #20
 
         self.race_line_points = np.zeros(2);
         self.grid_starting_position = np.zeros(2);
@@ -70,6 +67,12 @@ class GlobalPlanner(object):
         self.image_shape = np.array([10, 10]);
         self.map_init = False
         self.map = None
+
+        rospy.Subscriber('/goal', PoseStamped, self.goal_callback, queue_size = 1)
+        rospy.Subscriber('/pose', PoseWithCovarianceStamped, self.initialpose_callback, queue_size = 1)
+        rospy.Subscriber('/map', OccupancyGrid, self.map_callback, queue_size = 1)
+
+        rospy.loginfo("GlobalPlanner: init done")
 
 
     # ===================================================================================================================
@@ -259,7 +262,7 @@ class GlobalPlanner(object):
         else:
             rospy.loginfo("GlobalPlanner: goal_callback received")
 
-            starting_position = self.tfBuffer.lookup_transform("map", "base_link", rospy.Time(0))
+            starting_position = self.tfBuffer.lookup_transform("map", "r0/base_link", rospy.Time(0))
             self.world_starting_position[0] = starting_position.transform.translation.x # self.initpose.pose.pose.position.x
             self.world_starting_position[1] = starting_position.transform.translation.y # self.initpose.pose.pose.position.y
             self.grid_starting_position = np.divide(self.world_starting_position - self.origin, self.resolution)
@@ -317,12 +320,12 @@ class GlobalPlanner(object):
  
 
     def initialpose_callback(self, pose_msg):
-        #rospy.loginfo("GlobalPlanner: initialpose_callback received")
+        rospy.loginfo("GlobalPlanner: initialpose_callback received")
         self.initpose = pose_msg
         #rospy.loginfo(self.initpose)
 
     def map_callback(self, map_msg):
-        #rospy.loginfo("GlobalPlanner: map_callback received")
+        rospy.loginfo("GlobalPlanner: map_callback received")
         if not self.map_init:
             res = map_msg.info.resolution
             width = map_msg.info.width

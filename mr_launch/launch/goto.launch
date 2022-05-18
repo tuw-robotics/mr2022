@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="map" default="cave"/>
+    <arg name="map" default="map"/>
     <!--arg name="map" default="cave"/-->
     <arg name="local_planner" default="true"/>
 
@@ -8,7 +8,7 @@
 
     <!-- Map server just as reference -->
     <node name="map_server" pkg="map_server" type="map_server" args="$(find mr_launch)/cfg/map_server/$(arg map)/$(arg map).yaml">
-        <remap from="map" to="map_ref" />
+        <!--remap from="map" to="map_ref" -->
     </node>
 
     <!-- RViz with configuration to show useful topics -->
@@ -33,13 +33,14 @@
         <param name="particle_filter/sigma_init_position" value="0.05" />
         <param name="particle_filter/sigma_init_orientation" value="0.01" />
         <param name="particle_filter/sigma_static_position" value="0.2" />
-        <param name="map_image" value="$(find mr_self_localization)/maps/$(arg map).png" />
+        <param name="map_image" value="$(find mr_self_localization)/maps/$(arg map).pgm" />
         <param name="map_lines" value="$(find mr_self_localization)/maps/$(arg map).yml" />
+        <remap from="map" to="map_unused" />
     </node>
 
     <node pkg="mr_local_planner" type="global_planner.py" name="global_planner" output="screen">
-        <!--remap from="pose" to="initialpose" /-->
-        <remap from="pose" to="pose_estimated" />
+        <remap from="pose" to="initialpose" />
+        <!--remap from="pose" to="pose_estimated" /-->
     </node>
     <!--node pkg="mr_local_planner" type="global_planner_mock.py" name="global_planner" output="screen" /-->
 

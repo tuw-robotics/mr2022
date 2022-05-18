@@ -20,8 +20,8 @@ int main ( int argc, char **argv ) {
     while ( ros::ok() ) {
 
         try {
-            auto transform = tf_buffer.lookupTransform("map", "base_link", ros::Time(0));
-            auto laser_transform = tf_buffer.lookupTransform("map", "base_laser_link", ros::Time(0));
+            auto transform = tf_buffer.lookupTransform("map", "r0/base_link", ros::Time(0));
+            auto laser_transform = tf_buffer.lookupTransform("map", "r0/laser0", ros::Time(0));
             planner.updateTransform(transform, laser_transform);
         } catch(tf2::TransformException& e) {
             ROS_WARN_STREAM_THROTTLE(1, "failed to get transform from map to base_link " << e.what());
@@ -81,7 +81,7 @@ LocalPlannerNode::LocalPlannerNode ( ros::NodeHandle & n )
     /**
      * @node your code
      **/
-    sub_goal_ = n_.subscribe("goal", 1000, &LocalPlannerNode::callbackGoal, this);
+//    sub_goal_ = n_.subscribe("goal", 1000, &LocalPlannerNode::callbackGoal, this);
     sub_odom_ = n_.subscribe("odom", 1000, &LocalPlannerNode::callbackOdometry, this);
     sub_path_ = n_.subscribe("waypoints", 1000, &LocalPlannerNode::callbackPath, this);
 #endif
