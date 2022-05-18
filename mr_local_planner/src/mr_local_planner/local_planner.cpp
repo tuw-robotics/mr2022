@@ -339,7 +339,7 @@ void LocalPlanner::goto_plan() {
             int waypoint_index = this->getNextWaypointID(lookahead);
             targetWaypoint_ = this->path_[waypoint_index];
             // check reachibility of target waypoint
-            if (this->nextWaypointReachable(targetWaypoint_)) {
+            if (1 || this->nextWaypointReachable(targetWaypoint_)) {
                 cmd = path_tracking(targetWaypoint_, lookahead);
             } else {
                 ROS_INFO_THROTTLE(1, "can't see path, using local planner");
@@ -396,7 +396,7 @@ std::tuple<double, double> LocalPlanner::path_tracking(Pose2D targetWaypoint, do
      *
      */
     // parameters
-    double maxsteer = 0.5, maxspeed = 0.8;
+    double maxsteer = 0.5, maxspeed = 0.3;
     Pose2D &pose = this->transform_;
 
     // transform selected target to robot frame

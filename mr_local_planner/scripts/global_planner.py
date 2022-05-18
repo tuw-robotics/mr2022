@@ -52,7 +52,7 @@ class GlobalPlanner(object):
 
         self.occupied_thresh = 0.5 # this is normalized (0 to 1)
 
-        self.erosion_value = 5 #12
+        self.erosion_value = 9 #12
         self.d_value = 25
         self.use_blurred_factor = True
         self.sample_every = 10 #20
@@ -311,7 +311,7 @@ class GlobalPlanner(object):
 
                 pose = PoseStamped()
                 pose.pose.position.x = world_line_point[1]
-                pose.pose.position.y = -world_line_point[0]
+                pose.pose.position.y = -world_line_point[0] + self.resolution * self.image_shape[0]
                 pose.pose.position.z = 0
                 pose.pose.orientation = goal_msg.pose.orientation # only applied by local planner for target position.
                 msg.poses.append(pose)
